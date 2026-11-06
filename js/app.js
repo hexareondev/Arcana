@@ -1,6 +1,7 @@
 import { calcMatrix, calcHealth, calcPair, calcYears, ageAt, activePoint, parseDate, formatDate } from './matrix.js';
 import { ARCANA, POSITIONS, PAIR, PAIR_POSITIONS, CHAKRAS, YEARS } from './arcana.js';
 import { drawStory } from './story.js';
+import { initNatal, openNatal, natalFromHash, natalCurrent } from './natal-ui.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -74,8 +75,9 @@ function setMode(next) {
   });
   $('form').hidden = next !== 'single';
   $('pairForm').hidden = next !== 'pair';
-  if (!current || current.type !== next) $('result').hidden = true;
-  else $('result').hidden = false;
+  $('natalForm').hidden = next !== 'natal';
+  $('result').hidden = !(current && current.type === next);
+  $('natalResult').hidden = !(next === 'natal' && natalCurrent);
 }
 document.querySelectorAll('.tab[data-mode]').forEach((t) => t.addEventListener('click', () => setMode(t.dataset.mode)));
 
@@ -97,18 +99,19 @@ function updateBadge() {
 let current = null;
 
 // ── Анимации появления ─────────────────────────────
+const isPlayable = (el) => el.classList.contains('chart') || el.classList.contains('wheel');
 const io = 'IntersectionObserver' in window
   ? new IntersectionObserver((entries) => {
     for (const e of entries) {
       if (!e.isIntersecting) continue;
-      e.target.classList.add(e.target.classList.contains('chart') ? 'play' : 'in');
+      e.target.classList.add(isPlayable(e.target) ? 'play' : 'in');
       io.unobserve(e.target);
     }
   }, { threshold: 0.12 })
   : null;
 function playWhenVisible(el) {
   if (io) io.observe(el);
-  else el.classList.add(el.classList.contains('chart') ? 'play' : 'in');
+  else el.classList.add(isPlayable(el) ? 'play' : 'in');
 }
 function revealAll(root) {
   root.querySelectorAll('.card, .health-table tbody tr, .health-table tfoot tr, .year-row').forEach((el, i) => {
@@ -417,8 +420,10 @@ function scrollToResult() {
   $('result').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 // Пока результата нет, на ПК справа видна заглушка; после расчёта она подсказывает, что матрица ниже.
-new MutationObserver(() => document.body.classList.toggle('has-result', !$('result').hidden))
-  .observe($('result'), { attributes: true, attributeFilter: ['hidden'] });
+const resultObserver = new MutationObserver(() =>
+  document.body.classList.toggle('has-result', !$('result').hidden || !$('natalResult').hidden));
+resultObserver.observe($('result'), { attributes: true, attributeFilter: ['hidden'] });
+resultObserver.observe($('natalResult'), { attributes: true, attributeFilter: ['hidden'] });
 $('toResult').addEventListener('click', scrollToResult);
 function setHash(params) {
   history.replaceState(null, '', '#' + new URLSearchParams(params).toString());
@@ -497,23 +502,32 @@ function currentRecord() {
   return { d: formatDate(current.date), n: current.name, g: current.g };
 }
 const sameRecord = (a, b) => (a.t || 'single') === (b.t || 'single')
-  && (a.t === 'pair'
+  && (a.t === 'natal'
+    ? a.d === b.d && a.tm === b.tm && (a.n || '') === (b.n || '') && a.p && b.p && a.p.lat === b.p.lat && a.p.lon === b.p.lon
+    : a.t === 'pair'
     ? a.d1 === b.d1 && a.d2 === b.d2 && (a.n1 || '') === (b.n1 || '') && (a.n2 || '') === (b.n2 || '')
     : a.d === b.d && (a.n || '') === (b.n || '') && (a.g || 'n') === (b.g || 'n'));
 
-$('saveBtn').addEventListener('click', () => {
-  if (!current) return;
+function saveRecord(rec) {
   const list = loadSaved();
-  const rec = currentRecord();
   if (list.some((x) => sameRecord(x, rec))) { toast('Уже сохранено'); return; }
   list.unshift({ ...rec, at: Date.now() });
   if (storeSaved(list)) { updateBadge(); toast('Сохранено в «Мои матрицы»'); }
   else toast('Не получилось сохранить: браузер запрещает хранилище');
-});
+}
+$('saveBtn').addEventListener('click', () => { if (current) saveRecord(currentRecord()); });
+
+async function shareLink(text) {
+  const url = location.href;
+  if (navigator.share) {
+    try { await navigator.share({ title: 'Аркана', text, url }); return; } catch (err) { if (err.name === 'AbortError') return; }
+  }
+  try { await navigator.clipboard.writeText(url); toast('Ссылка скопирована'); }
+  catch { prompt('Скопируй ссылку:', url); }
+}
 
 $('shareBtn').addEventListener('click', async () => {
   if (!current) return;
-  const url = location.href;
   let text;
   if (current.type === 'pair') {
     text = `Атмосфера нашей пары — ${arc(current.m.E).name}. Проверь свою совместимость в «Аркане»`;
@@ -521,11 +535,7 @@ $('shareBtn').addEventListener('click', async () => {
     const who = current.name ? `${current.name}: ` : '';
     text = `${who}центр матрицы — ${arc(current.m.E).name}. Посмотри свою в «Аркане»`;
   }
-  if (navigator.share) {
-    try { await navigator.share({ title: 'Аркана — матрица судьбы', text, url }); return; } catch (err) { if (err.name === 'AbortError') return; }
-  }
-  try { await navigator.clipboard.writeText(url); toast('Ссылка скопирована'); }
-  catch { prompt('Скопируй ссылку:', url); }
+  shareLink(text);
 });
 
 // ── Картинка для сторис ────────────────────────────
@@ -596,7 +606,10 @@ function renderSaved() {
   $('savedEmpty').hidden = list.length > 0;
   $('savedList').innerHTML = list.map((x, i) => {
     let title, sub;
-    if (x.t === 'pair') {
+    if (x.t === 'natal') {
+      title = x.n || 'Натальная карта';
+      sub = `карта · ${x.d}${x.tm ? ' ' + x.tm : ''}${x.p && x.p.name ? ' · ' + x.p.name : ''}`;
+    } else if (x.t === 'pair') {
       const a = parseDate(x.d1), b = parseDate(x.d2);
       const e = a && b ? calcPair(calcMatrix(a), calcMatrix(b)).E : null;
       title = `${x.n1 || '…'} + ${x.n2 || '…'}`;
@@ -647,6 +660,12 @@ $('savedList').addEventListener('click', (e) => {
   }
   const item = list[i];
   if (!item) return;
+  if (item.t === 'natal') {
+    dialog.close();
+    setMode('natal');
+    openNatal({ name: item.n || '', d: item.d, tm: item.tm, p: item.p });
+    return;
+  }
   if (item.t === 'pair') {
     const a = parseDate(item.d1), b = parseDate(item.d2);
     if (!a || !b) return;
@@ -664,11 +683,14 @@ $('savedList').addEventListener('click', (e) => {
 function fromHash() {
   const params = new URLSearchParams(location.hash.slice(1));
   const clip = (s) => (s || '').slice(0, 40);
+  const natal = natalFromHash(params);
+  if (natal) { setMode('natal'); openNatal(natal); return; }
   const p1 = parseDate(params.get('p1')), p2 = parseDate(params.get('p2'));
   if (p1 && p2) { openPair(clip(params.get('n1')), p1, clip(params.get('n2')), p2); return; }
   const date = parseDate(params.get('d'));
   if (date) openSingle(clip(params.get('n')), date, params.get('g'));
 }
 
+initNatal({ g, toast, setHash, playWhenVisible, revealAll, saveRecord, shareLink });
 updateBadge();
 fromHash();

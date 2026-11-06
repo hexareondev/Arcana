@@ -13,6 +13,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oranienbaum&family=Raleway:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Symbols&text=%E2%98%89%E2%98%BD%E2%98%BF%E2%99%80%E2%99%82%E2%99%83%E2%99%84%E2%99%85%E2%99%86%E2%99%87%E2%98%8A%E2%99%88%E2%99%89%E2%99%8A%E2%99%8B%E2%99%8C%E2%99%8D%E2%99%8E%E2%99%8F%E2%99%90%E2%99%91%E2%99%92%E2%99%93%E2%98%8C%E2%98%8D%E2%96%B3%E2%96%A1%E2%9A%B9&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -43,7 +44,7 @@
   <div class="tabs" role="tablist">
     <button class="tab active" role="tab" aria-selected="true" data-mode="single">МАТРИЦА</button>
     <button class="tab" role="tab" aria-selected="false" data-mode="pair">ПАРА</button>
-    <button class="tab" role="tab" aria-selected="false" disabled title="Скоро">НАТАЛЬНАЯ<small>скоро</small></button>
+    <button class="tab" role="tab" aria-selected="false" data-mode="natal">НАТАЛЬНАЯ<small>карта</small></button>
   </div>
 
   <form id="form" class="form" novalidate>
@@ -96,6 +97,48 @@
     </fieldset>
     <button class="btn btn-accent" type="submit">РАССЧИТАТЬ СОВМЕСТИМОСТЬ</button>
     <p class="privacy">Матрицы складываются по точкам — у пары получаются свои числа</p>
+  </form>
+
+  <form id="natalForm" class="form" novalidate hidden autocomplete="off">
+    <div class="field">
+      <label for="nName">Имя <span class="muted">(необязательно)</span></label>
+      <input id="nName" type="text" maxlength="40" autocomplete="off" placeholder="Например, Аня">
+    </div>
+    <div class="field">
+      <label for="nDate">Дата рождения</label>
+      <input id="nDate" class="date-input" type="text" inputmode="numeric" maxlength="10" placeholder="ДД.ММ.ГГГГ" required>
+      <p class="error" role="alert" hidden></p>
+    </div>
+    <div class="field">
+      <label for="nTime">Время рождения</label>
+      <input id="nTime" class="time-input" type="text" inputmode="numeric" maxlength="5" placeholder="ЧЧ:ММ">
+      <p class="error" role="alert" hidden></p>
+      <label class="check"><input type="checkbox" id="nNoTime"><span>Не знаю точное время</span></label>
+    </div>
+    <div class="field place-field">
+      <label for="nPlace">Место рождения</label>
+      <div class="combo">
+        <input id="nPlace" type="text" maxlength="80" placeholder="Начни вводить город" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="placeList">
+        <ul class="place-list" id="placeList" role="listbox" hidden></ul>
+      </div>
+      <p class="place-picked" id="placePicked" hidden></p>
+      <p class="error" role="alert" hidden></p>
+      <button type="button" class="link-btn" id="manualToggle">Ввести координаты вручную</button>
+    </div>
+    <div class="manual" id="manualBox" hidden>
+      <div class="manual-row">
+        <div class="field"><label for="nLat">Широта</label><input id="nLat" type="text" inputmode="decimal" placeholder="55.03"></div>
+        <div class="field"><label for="nLon">Долгота</label><input id="nLon" type="text" inputmode="decimal" placeholder="82.92"></div>
+      </div>
+      <div class="field">
+        <label for="nZone">Часовой пояс</label>
+        <input id="nZone" type="text" list="zoneList" placeholder="Asia/Novosibirsk или UTC+07:00">
+        <datalist id="zoneList"></datalist>
+      </div>
+      <p class="muted small">Северная широта и восточная долгота — со знаком «+», южная и западная — со знаком «−».</p>
+    </div>
+    <button class="btn btn-accent" type="submit">ПОСТРОИТЬ КАРТУ</button>
+    <p class="privacy">Поиск города идёт через сервис Open-Meteo, сама карта считается на твоём устройстве</p>
   </form>
 </section>
 </div>
@@ -161,6 +204,52 @@
     <button class="btn btn-solid" id="shareBtn" type="button">ССЫЛКА</button>
   </div>
   <p class="note">Матрица судьбы — система самопознания, а не точная наука. Воспринимай трактовки как повод задуматься о себе.</p>
+</section>
+
+<section class="result natal-result" id="natalResult" hidden>
+  <div class="result-head">
+    <h2 class="section-title" id="nTitle">НАТАЛЬНАЯ КАРТА</h2>
+    <p class="muted" id="nSub"></p>
+  </div>
+  <p class="note warn" id="nNoTimeNote" hidden>Время рождения не указано: карта построена на полдень, без домов и асцендента. Положение Луны может отличаться на несколько градусов.</p>
+  <div class="wheel-wrap">
+    <svg id="wheel" class="wheel" viewBox="0 0 600 600" role="img" aria-label="Круг натальной карты"></svg>
+  </div>
+  <div class="point-info" id="wheelInfo" aria-live="polite">Нажми на планету в круге, чтобы узнать о ней</div>
+
+  <div class="cards" id="bigThree"></div>
+
+  <section class="n-block">
+    <h2 class="section-title">ПЛАНЕТЫ</h2>
+    <div class="table-wrap">
+      <table class="planet-table">
+        <thead><tr><th scope="col">Планета</th><th scope="col">Знак</th><th scope="col">Градус</th><th scope="col" id="houseCol">Дом</th></tr></thead>
+        <tbody id="planetBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="n-block">
+    <h2 class="section-title">СТИХИИ</h2>
+    <div class="balance" id="balance"></div>
+  </section>
+
+  <section class="n-block">
+    <h2 class="section-title">ПЛАНЕТЫ В ЗНАКАХ И ДОМАХ</h2>
+    <div class="cards" id="planetCards"></div>
+  </section>
+
+  <section class="n-block">
+    <h2 class="section-title">АСПЕКТЫ</h2>
+    <p class="card-hint center">Аспекты — углы между планетами. Мягкие (трин, секстиль) дают таланты, напряжённые (квадрат, оппозиция) — задачи для роста.</p>
+    <ul class="aspect-list" id="aspectList"></ul>
+  </section>
+
+  <div class="actions">
+    <button class="btn btn-ghost" id="nSaveBtn" type="button">СОХРАНИТЬ</button>
+    <button class="btn btn-solid" id="nShareBtn" type="button">ССЫЛКА</button>
+  </div>
+  <p class="note">Дома — по системе Плацидуса (за полярным кругом — Порфирия). Положения планет — библиотека astronomy-engine.</p>
 </section>
 
 <footer class="footer">✦ АРКАНА ✦</footer>

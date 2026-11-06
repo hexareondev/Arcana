@@ -21,7 +21,7 @@ export function parseDate(str) {
   const day = Number(m[1]);
   const month = Number(m[2]);
   const year = Number(m[3]);
-  if (month < 1 || month > 12 || day < 1 || year < 1900 || year > 2100) return null;
+  if (month < 1 || month > 12 || day < 1 || year < 1800 || year > 2100) return null;
   const daysInMonth = new Date(year, month, 0).getDate();
   if (day > daysInMonth) return null;
   return { day, month, year };
