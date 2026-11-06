@@ -1,7 +1,9 @@
 // Интерфейс натальной карты: форма, поиск города, круг, трактовки.
-import { loadAstronomy, calcNatal, formatOffset, formatDeg, isValidZone, SIGNS, angDist } from './natal.js?v=3';
-import { PLANETS, SIGNS_INFO, HOUSES_INFO, ASPECTS_INFO, ELEMENTS_INFO, MODALITIES_INFO, SUN_IN, MOON_IN, ASC_IN } from './natal-texts.js?v=3';
-import { parseDate, formatDate } from './matrix.js?v=3';
+import { loadAstronomy, calcNatal, formatOffset, formatDeg, isValidZone, SIGNS, angDist } from './natal.js?v=5';
+import { PLANETS, SIGNS_INFO, HOUSES_INFO, ASPECTS_INFO, ELEMENTS_INFO, MODALITIES_INFO, SUN_IN, MOON_IN, ASC_IN } from './natal-texts.js?v=5';
+import { parseDate, formatDate } from './matrix.js?v=5';
+import { IN_SIGN } from './natal-signs.js?v=5';
+import { IN_HOUSE } from './natal-houses.js?v=5';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -253,8 +255,9 @@ function renderBigThree(c) {
     <span class="card-label">${label}</span><p class="card-hint">${hint}</p>
     <h3 class="card-title">${title}</h3><p class="card-text">${text}</p></article>`;
   const g = ctx.g;
-  let html = card('Солнце', 'Твоя суть и то, что даёт силы', `<span class="glyph">${gl('☉')}</span> в ${SIGNS_INFO[sun.sign].gen}`, g(SUN_IN[sun.sign]));
-  html += card('Луна', 'Чувства и внутренний мир', `<span class="glyph">${gl('☽')}</span> в ${SIGNS_INFO[moon.sign].gen}`, g(MOON_IN[moon.sign]));
+  const inHouse = (p) => (p.house ? ` <span class="house-note"><b>${HOUSES_INFO[p.house - 1].title}.</b> ${IN_HOUSE[p.key][p.house - 1]}</span>` : '');
+  let html = card('Солнце', 'Твоя суть и то, что даёт силы', `<span class="glyph">${gl('☉')}</span> в ${SIGNS_INFO[sun.sign].gen}${sun.house ? ' · ' + ROMAN[sun.house - 1] : ''}`, g(SUN_IN[sun.sign]) + inHouse(sun));
+  html += card('Луна', 'Чувства и внутренний мир', `<span class="glyph">${gl('☽')}</span> в ${SIGNS_INFO[moon.sign].gen}${moon.house ? ' · ' + ROMAN[moon.house - 1] : ''}`, g(MOON_IN[moon.sign]) + inHouse(moon));
   if (c.houses) {
     const s = Math.floor(c.houses.asc / 30);
     html += card('Асцендент', 'Как тебя видят при первой встрече', `ASC в ${SIGNS_INFO[s].gen}`, g(ASC_IN[s]));
@@ -309,13 +312,10 @@ function renderBalance(c) {
 function renderPlanetCards(c) {
   const html = c.planets.filter((p) => p.key !== 'sun' && p.key !== 'moon').map((p) => {
     const P = PLANETS[p.key], S = SIGNS_INFO[p.sign];
-    const verb = p.key === 'node' ? 'зовёт развиваться' : 'проявляются';
-    let text = p.key === 'node'
-      ? `${P.subject}: душа растёт, когда действует ${S.manner}.`
-      : `${P.subject} ${verb} ${S.manner}.`;
+    let text = IN_SIGN[p.key] ? IN_SIGN[p.key][p.sign] : `${P.subject} проявляются ${S.manner}.`;
     if (p.house) {
       const H = HOUSES_INFO[p.house - 1];
-      text += ` Главная сцена — ${H.title}: ${H.sphere} (${H.about}).`;
+      text += ` <span class="house-note"><b>${H.title} — ${H.sphere}.</b> ${IN_HOUSE[p.key][p.house - 1]}</span>`;
     }
     if (p.retro) text += ' Планета ретроградна: её энергия обращена внутрь и раскрывается не сразу, через переосмысление.';
     return `<article class="card">

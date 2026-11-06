@@ -1,7 +1,7 @@
-import { calcMatrix, calcHealth, calcPair, calcYears, ageAt, activePoint, parseDate, formatDate } from './matrix.js?v=3';
-import { ARCANA, POSITIONS, PAIR, PAIR_POSITIONS, CHAKRAS, YEARS } from './arcana.js?v=3';
-import { drawStory } from './story.js?v=3';
-import { initNatal, openNatal, natalFromHash, natalCurrent } from './natal-ui.js?v=3';
+import { calcMatrix, calcHealth, calcPair, calcYears, ageAt, activePoint, parseDate, formatDate } from './matrix.js?v=5';
+import { ARCANA, POSITIONS, PAIR, PAIR_POSITIONS, CHAKRAS, YEARS } from './arcana.js?v=5';
+import { drawStory } from './story.js?v=5';
+import { initNatal, openNatal, natalFromHash, natalCurrent } from './natal-ui.js?v=5';
 
 const $ = (id) => document.getElementById(id);
 
@@ -81,6 +81,8 @@ function setMode(next) {
   const ph = document.querySelector('.ph-empty');
   if (ph) ph.innerHTML = next === 'natal' ? 'Введи дату, время и город —<br>здесь появится твоя карта'
     : next === 'pair' ? 'Введи две даты —<br>здесь появится матрица пары' : 'Введи дату рождения —<br>здесь появится твоя матрица';
+  const ready = $('toResult');
+  if (ready) ready.firstChild.textContent = next === 'natal' ? 'Твоя карта — ниже' : next === 'pair' ? 'Матрица пары — ниже' : 'Твоя матрица — ниже';
   $('result').hidden = !(current && current.type === next);
   $('natalResult').hidden = !(next === 'natal' && natalCurrent);
 }
@@ -429,7 +431,10 @@ const resultObserver = new MutationObserver(() =>
   document.body.classList.toggle('has-result', !$('result').hidden || !$('natalResult').hidden));
 resultObserver.observe($('result'), { attributes: true, attributeFilter: ['hidden'] });
 resultObserver.observe($('natalResult'), { attributes: true, attributeFilter: ['hidden'] });
-$('toResult').addEventListener('click', scrollToResult);
+$('toResult').addEventListener('click', () => {
+  const el = !$('natalResult').hidden ? $('natalResult') : $('result');
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
 function setHash(params) {
   history.replaceState(null, '', '#' + new URLSearchParams(params).toString());
 }

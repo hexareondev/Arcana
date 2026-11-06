@@ -594,6 +594,8 @@ tr.reveal, .year-row.reveal { transform: none; }
 .asp-body small { color: var(--muted); font-size: 12px; }
 .point-info .glyph { color: var(--brass); }
 .card-title .glyph { color: var(--brass); }
+.house-note { display: block; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--brass-faint); }
+.house-note b { font-weight: 600; color: var(--brass); }
 
 @media (min-width: 1000px) {
   .natal-result > .n-block, .natal-result > .note, .natal-result > .actions { max-width: 1000px; margin-left: auto; margin-right: auto; }
