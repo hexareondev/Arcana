@@ -391,6 +391,63 @@ fieldset.partner legend { padding: 0 8px; margin: 0 auto; font-family: var(--dis
   .card:hover { border-color: var(--brass); }
 }
 
+
+/* ── Прогноз по годам ──────────────────────────── */
+.years { display: flex; flex-direction: column; gap: 14px; margin-top: 28px; align-items: center; }
+.year-now { width: 100%; }
+.year-now .card { border-color: var(--terra); }
+.year-now .card-label { color: var(--terra-light); }
+.decades {
+  width: 100%; display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px;
+  scrollbar-width: none; position: relative;
+}
+.decades::-webkit-scrollbar { display: none; }
+.decade {
+  flex: 0 0 auto; min-height: 44px; padding: 0 14px;
+  border: 1px solid var(--brass-faint); background: transparent; color: var(--ivory-2);
+  font-family: var(--display); font-size: 16px; letter-spacing: 0.06em; cursor: pointer;
+  position: relative; transition: background-color .2s ease, color .2s ease, border-color .2s ease;
+}
+.decade:hover { border-color: var(--brass); }
+.decade.active { background: var(--brass); color: var(--bg); border-color: var(--brass); }
+.decade.has-now::after {
+  content: ''; position: absolute; top: 5px; right: 5px; width: 6px; height: 6px; border-radius: 50%; background: var(--terra);
+}
+.year-list { list-style: none; margin: 0; padding: 0; width: 100%; display: flex; flex-direction: column; border-top: 1px solid var(--brass-faint); }
+.year-row {
+  width: 100%; min-height: 56px; padding: 8px 10px;
+  display: grid; grid-template-columns: 64px 40px minmax(0, 1fr) auto; align-items: center; gap: 10px;
+  border: none; border-bottom: 1px solid var(--brass-faint); background: transparent; cursor: pointer; text-align: left;
+  transition: background-color .2s ease;
+}
+.year-row:hover, .year-row.sel { background: rgba(201, 168, 106, 0.08); }
+.year-row.sel { box-shadow: inset 2px 0 0 var(--brass); }
+.year-row.now { background: rgba(217, 130, 95, 0.12); }
+.year-row.now.sel { box-shadow: inset 2px 0 0 var(--terra); }
+.yr-age { font-size: 13px; color: var(--muted); letter-spacing: 0.04em; }
+.yr-num { font-family: var(--display); font-size: 22px; color: var(--ivory); text-align: center; }
+.yr-name { font-family: var(--display); font-size: 17px; color: var(--ivory); display: flex; flex-direction: column; line-height: 1.2; }
+.yr-name small { font-family: var(--body); font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+.yr-badge {
+  font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; font-weight: 600;
+  color: var(--ink); background: var(--terra); padding: 3px 7px;
+}
+.year-info {
+  width: 100%; min-height: 72px; padding: 14px 16px; border: 1px solid var(--brass-faint);
+  text-align: center; font-size: 14px; color: var(--ivory-2);
+}
+.year-info strong { display: block; font-family: var(--display); font-weight: 400; font-size: 19px; color: var(--ivory); margin-bottom: 4px; animation: rise 0.35s ease-out; }
+tr.reveal, .year-row.reveal { transform: none; }
+
+@media (min-width: 1000px) {
+  .decades { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); overflow: visible; }
+  .decade { padding: 0 4px; }
+  .year-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 18px; border-top: none; }
+  .year-row { border-top: none; }
+  .year-list li:nth-child(1) .year-row, .year-list li:nth-child(5) .year-row { border-top: 1px solid var(--brass-faint); }
+  .year-list { grid-auto-flow: column; grid-template-rows: repeat(4, auto); }
+}
+
 /* ══ Анимации ═══════════════════════════════════ */
 .hero { position: relative; }
 .hero > *:not(.stars) { position: relative; }

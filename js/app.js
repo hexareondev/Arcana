@@ -1,5 +1,5 @@
-import { calcMatrix, calcHealth, calcPair, parseDate, formatDate } from './matrix.js';
-import { ARCANA, POSITIONS, PAIR, PAIR_POSITIONS, CHAKRAS } from './arcana.js';
+import { calcMatrix, calcHealth, calcPair, calcYears, ageAt, activePoint, parseDate, formatDate } from './matrix.js';
+import { ARCANA, POSITIONS, PAIR, PAIR_POSITIONS, CHAKRAS, YEARS } from './arcana.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -110,7 +110,7 @@ function playWhenVisible(el) {
   else el.classList.add(el.classList.contains('chart') ? 'play' : 'in');
 }
 function revealAll(root) {
-  root.querySelectorAll('.card, .health-table tbody tr, .health-table tfoot tr').forEach((el, i) => {
+  root.querySelectorAll('.card, .health-table tbody tr, .health-table tfoot tr, .year-row').forEach((el, i) => {
     el.classList.add('reveal');
     el.style.setProperty('--i', String(i % 2));
     playWhenVisible(el);
@@ -310,6 +310,72 @@ function renderPairCards() {
   revealAll($('cards'));
 }
 
+// ── Прогноз по годам ───────────────────────────────
+const yearsWord = (n) => {
+  const n10 = n % 10, n100 = n % 100;
+  if (n10 === 1 && n100 !== 11) return 'год';
+  if (n10 >= 2 && n10 <= 4 && (n100 < 12 || n100 > 14)) return 'года';
+  return 'лет';
+};
+
+function renderYears(m, date) {
+  const decades = calcYears(m);
+  const age = ageAt(date);
+  const now = activePoint(age);
+  let selDecade = now ? now.decade : 0;
+
+  if (now) {
+    const p = decades[now.decade].points[now.k];
+    const next = decades[(now.decade + (now.k === 7 ? 1 : 0)) % 8].points[(now.k + 1) % 8];
+    const full = Math.floor(age);
+    const cycle = age >= 80 ? ' (второй круг)' : '';
+    $('yearNow').innerHTML = card({
+      wide: true,
+      label: 'Твой период сейчас',
+      hint: `Тебе ${full} ${yearsWord(full)}${cycle} · отрезок ${p.label} ${/–/.test(p.label) ? 'лет' : yearsWord(Number(p.label))}`,
+      n: p.value,
+      text: g(YEARS[p.value]),
+      extra: `<p class="card-hint">Следующий отрезок — ${next.label}: ${esc(arc(next.value).name)}</p>`,
+    });
+  } else {
+    $('yearNow').innerHTML = '';
+  }
+
+  const drawDecade = (di) => {
+    selDecade = di;
+    $('decades').querySelectorAll('button').forEach((b, i) => {
+      b.classList.toggle('active', i === di);
+      b.setAttribute('aria-selected', String(i === di));
+    });
+    const d = decades[di];
+    $('yearList').innerHTML = d.points.map((p) => {
+      const isNow = now && now.decade === di && now.k === p.k;
+      const a = arc(p.value);
+      return `<li><button type="button" class="year-row${isNow ? ' now' : ''}" data-k="${p.k}">
+        <span class="yr-age">${p.label}</span>
+        <span class="yr-num">${p.value}</span>
+        <span class="yr-name">${esc(a.name)}<small>${esc(a.keys.join(' · '))}</small></span>
+        ${isNow ? '<span class="yr-badge">сейчас</span>' : ''}
+      </button></li>`;
+    }).join('');
+    const pick = (k) => {
+      const p = d.points[k];
+      $('yearList').querySelectorAll('.year-row').forEach((r) => r.classList.toggle('sel', Number(r.dataset.k) === k));
+      $('yearInfo').innerHTML = `<strong>${p.label} ${/–/.test(p.label) ? 'лет' : yearsWord(Number(p.label))} · ${esc(arcTitle(p.value))}</strong>${esc(g(YEARS[p.value]))}`;
+    };
+    $('yearList').querySelectorAll('.year-row').forEach((r) => r.addEventListener('click', () => pick(Number(r.dataset.k))));
+    pick(now && now.decade === di ? now.k : 0);
+    revealAll($('yearList'));
+  };
+
+  $('decades').innerHTML = decades.map((d, i) =>
+    `<button type="button" role="tab" class="decade${now && now.decade === i ? ' has-now' : ''}">${d.from}–${d.to}</button>`).join('');
+  $('decades').querySelectorAll('button').forEach((b, i) => b.addEventListener('click', () => drawDecade(i)));
+  drawDecade(selDecade);
+  const act = $('decades').querySelectorAll('button')[selDecade];
+  if (act) $('decades').scrollLeft = act.offsetLeft - ($('decades').clientWidth - act.offsetWidth) / 2;
+}
+
 // ── Карта здоровья ─────────────────────────────────
 function renderHealth(m) {
   const h = calcHealth(m);
@@ -365,6 +431,8 @@ function show(name, date, { scroll = true, sex } = {}) {
   $('resultDate').textContent = formatDate(date);
   drawChart(m);
   renderCards(m);
+  renderYears(m, date);
+  $('years').hidden = false;
   renderHealth(m);
   $('health').hidden = false;
   $('result').hidden = false;
@@ -386,6 +454,7 @@ function showPair(n1, d1, n2, d2, { scroll = true } = {}) {
   drawChart(current.m);
   renderPairCards();
   $('health').hidden = true;
+  $('years').hidden = true;
   $('result').hidden = false;
 
   const params = { p1: formatDate(d1), p2: formatDate(d2) };
