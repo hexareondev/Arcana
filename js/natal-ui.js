@@ -1,7 +1,7 @@
 // Интерфейс натальной карты: форма, поиск города, круг, трактовки.
-import { loadAstronomy, calcNatal, formatOffset, formatDeg, isValidZone, SIGNS, angDist } from './natal.js';
-import { PLANETS, SIGNS_INFO, HOUSES_INFO, ASPECTS_INFO, ELEMENTS_INFO, MODALITIES_INFO, SUN_IN, MOON_IN, ASC_IN } from './natal-texts.js';
-import { parseDate, formatDate } from './matrix.js';
+import { loadAstronomy, calcNatal, formatOffset, formatDeg, isValidZone, SIGNS, angDist } from './natal.js?v=3';
+import { PLANETS, SIGNS_INFO, HOUSES_INFO, ASPECTS_INFO, ELEMENTS_INFO, MODALITIES_INFO, SUN_IN, MOON_IN, ASC_IN } from './natal-texts.js?v=3';
+import { parseDate, formatDate } from './matrix.js?v=3';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));

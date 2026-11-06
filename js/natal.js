@@ -6,7 +6,7 @@ let A = typeof window !== 'undefined' ? window.Astronomy : null;
 export function setAstronomy(lib) { A = lib; }
 
 let loading = null;
-export function loadAstronomy(src = 'vendor/astronomy.min.js') {
+export function loadAstronomy(src = 'vendor/astronomy.min.js?v=2.1.19') {
   if (A) return Promise.resolve(A);
   if (loading) return loading;
   loading = new Promise((resolve, reject) => {

@@ -1,7 +1,7 @@
-import { calcMatrix, calcHealth, calcPair, calcYears, ageAt, activePoint, parseDate, formatDate } from './matrix.js';
-import { ARCANA, POSITIONS, PAIR, PAIR_POSITIONS, CHAKRAS, YEARS } from './arcana.js';
-import { drawStory } from './story.js';
-import { initNatal, openNatal, natalFromHash, natalCurrent } from './natal-ui.js';
+import { calcMatrix, calcHealth, calcPair, calcYears, ageAt, activePoint, parseDate, formatDate } from './matrix.js?v=3';
+import { ARCANA, POSITIONS, PAIR, PAIR_POSITIONS, CHAKRAS, YEARS } from './arcana.js?v=3';
+import { drawStory } from './story.js?v=3';
+import { initNatal, openNatal, natalFromHash, natalCurrent } from './natal-ui.js?v=3';
 
 const $ = (id) => document.getElementById(id);
 
@@ -76,6 +76,11 @@ function setMode(next) {
   $('form').hidden = next !== 'single';
   $('pairForm').hidden = next !== 'pair';
   $('natalForm').hidden = next !== 'natal';
+  document.body.classList.remove('mode-single', 'mode-pair', 'mode-natal');
+  document.body.classList.add('mode-' + next);
+  const ph = document.querySelector('.ph-empty');
+  if (ph) ph.innerHTML = next === 'natal' ? 'Введи дату, время и город —<br>здесь появится твоя карта'
+    : next === 'pair' ? 'Введи две даты —<br>здесь появится матрица пары' : 'Введи дату рождения —<br>здесь появится твоя матрица';
   $('result').hidden = !(current && current.type === next);
   $('natalResult').hidden = !(next === 'natal' && natalCurrent);
 }
@@ -692,5 +697,6 @@ function fromHash() {
 }
 
 initNatal({ g, toast, setHash, playWhenVisible, revealAll, saveRecord, shareLink });
+document.body.classList.add('mode-single');
 updateBadge();
 fromHash();
