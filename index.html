@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Аркана — матрица судьбы и натальная карта</title>
+<meta name="description" content="Рассчитай матрицу судьбы по дате рождения: 22 аркана, кармический хвост, деньги, отношения и предназначение. Бесплатно и без регистрации.">
+<meta name="theme-color" content="#0F2B26">
+<meta property="og:title" content="Аркана — матрица судьбы">
+<meta property="og:description" content="Всё, что звёзды и числа знают о тебе. Бесплатно и без регистрации.">
+<meta property="og:type" content="website">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oranienbaum&family=Raleway:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="frame">
+<div class="frame-inner">
+
+<header class="topbar">
+  <button class="icon-btn" id="savedBtn" aria-label="Мои матрицы">
+    <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="6" y="3" width="12" height="18" rx="1"></rect><path d="M12 8 L14 12 L12 16 L10 12 Z"></path></svg>
+    <span class="badge" id="savedCount" hidden>0</span>
+  </button>
+  <span class="topbar-mark">✦ ✦ ✦</span>
+  <span class="icon-btn-placeholder" aria-hidden="true"></span>
+</header>
+
+<section class="hero">
+  <svg class="emblem" aria-hidden="true" width="120" height="60" viewBox="0 0 120 60" fill="none" stroke="currentColor" stroke-width="1">
+    <path d="M60 4 L60 56 M30 56 L60 14 L90 56 M10 56 L60 28 L110 56"></path><circle cx="60" cy="10" r="4" fill="currentColor"></circle>
+  </svg>
+  <h1 class="logo">АРКАНА</h1>
+  <p class="slogan" id="slogan">Всё, что звёзды и числа<br>знают о тебе</p>
+  <div class="divider" aria-hidden="true"><span></span>✦<span></span></div>
+  <p class="lead">Матрица судьбы и натальная карта по дате, времени и месту рождения.</p>
+</section>
+
+<section class="panel">
+  <div class="tabs" role="tablist">
+    <button class="tab active" role="tab" aria-selected="true">МАТРИЦА</button>
+    <button class="tab" role="tab" aria-selected="false" disabled title="Скоро">НАТАЛЬНАЯ КАРТА<small>скоро</small></button>
+  </div>
+
+  <form id="form" class="form" novalidate>
+    <div class="field">
+      <label for="name">Имя <span class="muted">(необязательно)</span></label>
+      <input id="name" name="name" type="text" maxlength="40" autocomplete="off" placeholder="Например, Аня">
+    </div>
+    <fieldset class="field gender">
+      <legend>Пол <span class="muted">(для формулировок)</span></legend>
+      <div class="seg">
+        <input type="radio" name="gender" id="gF" value="f"><label for="gF">Женский</label>
+        <input type="radio" name="gender" id="gM" value="m"><label for="gM">Мужской</label>
+        <input type="radio" name="gender" id="gN" value="n" checked><label for="gN">Не указывать</label>
+      </div>
+    </fieldset>
+    <div class="field">
+      <label for="date">Дата рождения</label>
+      <input id="date" name="date" type="text" inputmode="numeric" maxlength="10" placeholder="ДД.ММ.ГГГГ" autocomplete="bday" required>
+      <p class="error" id="dateError" role="alert" hidden></p>
+    </div>
+    <button class="btn btn-accent" type="submit">РАССЧИТАТЬ</button>
+    <p class="privacy">Ничего не сохраняется на сервере — только у тебя</p>
+  </form>
+</section>
+
+<section class="result" id="result" hidden>
+  <div class="result-head">
+    <h2 class="section-title" id="resultTitle">ТВОЯ МАТРИЦА</h2>
+    <p class="muted" id="resultDate"></p>
+  </div>
+
+  <div class="chart-wrap">
+    <svg id="chart" class="chart" viewBox="0 0 360 360" role="img" aria-label="Схема матрицы судьбы"></svg>
+  </div>
+  <div class="point-info" id="pointInfo" aria-live="polite">Нажми на любое число в схеме, чтобы узнать, что оно значит</div>
+
+  <div class="cards" id="cards"></div>
+
+  <div class="actions">
+    <button class="btn btn-ghost" id="saveBtn" type="button">СОХРАНИТЬ</button>
+    <button class="btn btn-solid" id="shareBtn" type="button">ПОДЕЛИТЬСЯ</button>
+  </div>
+  <p class="note">Матрица судьбы — система самопознания, а не точная наука. Воспринимай трактовки как повод задуматься о себе.</p>
+</section>
+
+<footer class="footer">✦ АРКАНА ✦</footer>
+</div>
+</div>
+
+<dialog id="savedDialog" class="sheet">
+  <div class="sheet-head">
+    <h2 class="section-title">МОИ МАТРИЦЫ</h2>
+    <button class="icon-btn" id="closeSaved" aria-label="Закрыть">
+      <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+    </button>
+  </div>
+  <ul class="saved-list" id="savedList"></ul>
+  <p class="muted empty" id="savedEmpty">Здесь появятся сохранённые матрицы.</p>
+</dialog>
+
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
