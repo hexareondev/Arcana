@@ -1,5 +1,6 @@
 import { calcMatrix, calcHealth, calcPair, calcYears, ageAt, activePoint, parseDate, formatDate } from './matrix.js';
 import { ARCANA, POSITIONS, PAIR, PAIR_POSITIONS, CHAKRAS, YEARS } from './arcana.js';
+import { drawStory } from './story.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -526,6 +527,66 @@ $('shareBtn').addEventListener('click', async () => {
   try { await navigator.clipboard.writeText(url); toast('Ссылка скопирована'); }
   catch { prompt('Скопируй ссылку:', url); }
 });
+
+// ── Картинка для сторис ────────────────────────────
+const storyDialog = $('storyDialog');
+let storyUrl = null, storyFile = null;
+
+function siteUrl() {
+  return (location.host + location.pathname).replace(/index\.html$/, '').replace(/\/$/, '');
+}
+
+function storyOptions() {
+  if (current.type === 'pair') {
+    const { m, n1, n2, d1, d2 } = current;
+    return {
+      title: 'МАТРИЦА ПАРЫ',
+      name: n1 && n2 ? `${n1} + ${n2}` : (n1 || n2 || ''),
+      sub: `${formatDate(d1)}  +  ${formatDate(d2)}`,
+      m, center: { label: 'Атмосфера пары', n: m.E },
+      items: [{ label: 'Ресурс', n: m.B }, { label: 'Деньги', n: m.money }, { label: 'Задача', n: m.D }],
+    };
+  }
+  const { m, name, date } = current;
+  return {
+    title: 'МАТРИЦА СУДЬБЫ',
+    name, sub: formatDate(date),
+    m, center: { label: 'Центр личности', n: m.E },
+    items: [{ label: 'Таланты', n: m.B }, { label: 'Деньги', n: m.money }, { label: 'Любовь', n: m.love }],
+  };
+}
+
+$('storyBtn').addEventListener('click', async () => {
+  if (!current) return;
+  $('storyImg').hidden = true;
+  $('storyLoading').hidden = false;
+  $('storyShare').hidden = true;
+  storyDialog.showModal();
+  try {
+    const canvas = await drawStory({ ...storyOptions(), arc, url: siteUrl() });
+    const blob = await new Promise((res) => canvas.toBlob(res, 'image/png'));
+    if (storyUrl) URL.revokeObjectURL(storyUrl);
+    storyUrl = URL.createObjectURL(blob);
+    const base = current.type === 'pair' ? 'arcana-para' : `arcana-${formatDate(current.date)}`;
+    storyFile = new File([blob], `${base}.png`, { type: 'image/png' });
+    $('storyImg').src = storyUrl;
+    $('storyImg').hidden = false;
+    $('storyLoading').hidden = true;
+    $('storyDownload').href = storyUrl;
+    $('storyDownload').download = storyFile.name;
+    $('storyShare').hidden = !(navigator.canShare && navigator.canShare({ files: [storyFile] }));
+  } catch (err) {
+    $('storyLoading').textContent = 'Не получилось нарисовать картинку. Попробуй ещё раз.';
+  }
+});
+
+$('storyShare').addEventListener('click', async () => {
+  if (!storyFile) return;
+  try { await navigator.share({ files: [storyFile], title: 'Аркана' }); }
+  catch (err) { if (err.name !== 'AbortError') toast('Не получилось отправить — попробуй «Скачать»'); }
+});
+$('closeStory').addEventListener('click', () => storyDialog.close());
+storyDialog.addEventListener('click', (e) => { if (e.target === storyDialog) storyDialog.close(); });
 
 // ── Мои матрицы ────────────────────────────────────
 const dialog = $('savedDialog');

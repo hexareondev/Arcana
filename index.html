@@ -153,8 +153,12 @@
   </section>
 
   <div class="actions">
+    <button class="btn btn-accent btn-story" id="storyBtn" type="button">
+      <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="6" y="2.5" width="12" height="19" rx="2"></rect><circle cx="12" cy="11" r="3"></circle><path d="M9.5 17.5h5"></path></svg>
+      КАРТИНКА ДЛЯ СТОРИС
+    </button>
     <button class="btn btn-ghost" id="saveBtn" type="button">СОХРАНИТЬ</button>
-    <button class="btn btn-solid" id="shareBtn" type="button">ПОДЕЛИТЬСЯ</button>
+    <button class="btn btn-solid" id="shareBtn" type="button">ССЫЛКА</button>
   </div>
   <p class="note">Матрица судьбы — система самопознания, а не точная наука. Воспринимай трактовки как повод задуматься о себе.</p>
 </section>
@@ -172,6 +176,24 @@
   </div>
   <ul class="saved-list" id="savedList"></ul>
   <p class="muted empty" id="savedEmpty">Здесь появятся сохранённые матрицы.</p>
+</dialog>
+
+<dialog id="storyDialog" class="sheet story-sheet">
+  <div class="sheet-head">
+    <h2 class="section-title">ДЛЯ СТОРИС</h2>
+    <button class="icon-btn" id="closeStory" aria-label="Закрыть">
+      <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+    </button>
+  </div>
+  <div class="story-preview">
+    <p class="muted" id="storyLoading">Рисую картинку…</p>
+    <img id="storyImg" alt="Картинка с матрицей для сторис" hidden>
+  </div>
+  <div class="story-actions">
+    <button class="btn btn-accent" id="storyShare" type="button" hidden>ОТПРАВИТЬ</button>
+    <a class="btn btn-solid" id="storyDownload" download="arcana.png" href="#">СКАЧАТЬ</a>
+  </div>
+  <p class="note" id="storyHint">На телефоне: «Отправить» → Instagram, Telegram или ВК. Или скачай и добавь в сторис из галереи.</p>
 </dialog>
 
 <div class="toast" id="toast" role="status" hidden></div>
