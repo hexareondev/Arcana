@@ -95,6 +95,43 @@ function updateBadge() {
 // single: { type, name, date, m, g }   pair: { type, n1, n2, d1, d2, m1, m2, m }
 let current = null;
 
+// ── Анимации появления ─────────────────────────────
+const io = 'IntersectionObserver' in window
+  ? new IntersectionObserver((entries) => {
+    for (const e of entries) {
+      if (!e.isIntersecting) continue;
+      e.target.classList.add(e.target.classList.contains('chart') ? 'play' : 'in');
+      io.unobserve(e.target);
+    }
+  }, { threshold: 0.12 })
+  : null;
+function playWhenVisible(el) {
+  if (io) io.observe(el);
+  else el.classList.add(el.classList.contains('chart') ? 'play' : 'in');
+}
+function revealAll(root) {
+  root.querySelectorAll('.card, .health-table tbody tr, .health-table tfoot tr').forEach((el, i) => {
+    el.classList.add('reveal');
+    el.style.setProperty('--i', String(i % 2));
+    playWhenVisible(el);
+  });
+}
+
+// ── Звёзды в шапке ─────────────────────────────────
+(function stars() {
+  const box = document.createElement('div');
+  box.className = 'stars';
+  box.setAttribute('aria-hidden', 'true');
+  for (let i = 0; i < 26; i++) {
+    const st = document.createElement('span');
+    const size = Math.random() < 0.2 ? 3 : (Math.random() < 0.5 ? 2 : 1.5);
+    st.style.cssText = `left:${Math.random() * 100}%;top:${Math.random() * 100}%;width:${size}px;height:${size}px;`
+      + `animation-delay:${(Math.random() * 6).toFixed(2)}s;animation-duration:${(3 + Math.random() * 4).toFixed(2)}s`;
+    box.appendChild(st);
+  }
+  document.querySelector('.hero').prepend(box);
+})();
+
 // ── Схема ──────────────────────────────────────────
 const C0 = 180;
 const OUT = 150, MID = 104, IN = 62, SQ = 106;
@@ -154,17 +191,22 @@ function drawChart(m) {
   let s = `
     <circle class="ring" cx="${C0}" cy="${C0}" r="${OUT}"/>
     <circle class="ring-dots" cx="${C0}" cy="${C0}" r="${OUT + 10}"/>
-    <path class="ln" d="M${C0 - OUT} ${C0} L${C0} ${C0 - OUT} L${C0 + OUT} ${C0} L${C0} ${C0 + OUT} Z"/>
-    <rect class="ln ln-mid" x="${C0 - SQ}" y="${C0 - SQ}" width="${SQ * 2}" height="${SQ * 2}"/>
-    <path class="ln ln-soft" d="M${C0 - SQ} ${C0 - SQ} L${C0 + SQ} ${C0 + SQ} M${C0 + SQ} ${C0 - SQ} L${C0 - SQ} ${C0 + SQ} M${C0 - OUT} ${C0} H${C0 + OUT} M${C0} ${C0 - OUT} V${C0 + OUT}"/>
+    <path class="ln draw" pathLength="1" d="M${C0 - OUT} ${C0} L${C0} ${C0 - OUT} L${C0 + OUT} ${C0} L${C0} ${C0 + OUT} Z"/>
+    <rect class="ln ln-mid draw" pathLength="1" style="--d:250ms" x="${C0 - SQ}" y="${C0 - SQ}" width="${SQ * 2}" height="${SQ * 2}"/>
+    <path class="ln ln-soft draw" pathLength="1" style="--d:450ms" d="M${C0 - SQ} ${C0 - SQ} L${C0 + SQ} ${C0 + SQ} M${C0 + SQ} ${C0 - SQ} L${C0 - SQ} ${C0 + SQ} M${C0 - OUT} ${C0} H${C0 + OUT} M${C0} ${C0 - OUT} V${C0 + OUT}"/>
     <path class="ln ln-mid" stroke-dasharray="3 3" d="M${C0 + IN} ${C0} L${C0} ${C0 + IN}"/>`;
+  const order = { outer: 0, ancestral: 1, inner: 2, center: 3 };
+  const counters = { outer: 0, ancestral: 0, inner: 0, center: 0 };
   for (const [key, [x, y, kind]] of Object.entries(LAYOUT)) {
     const n = m[key];
-    s += `<g class="pt ${kind}" data-key="${key}" tabindex="0" role="button" aria-label="${esc(pointLabel(key))}: ${n}, ${esc(arc(n).name)}">
+    const delay = 500 + order[kind] * 320 + (counters[kind]++) * 45;
+    s += `<g class="pt ${kind}" style="--d:${delay}ms" data-key="${key}" tabindex="0" role="button" aria-label="${esc(pointLabel(key))}: ${n}, ${esc(arc(n).name)}">
       ${shapeFor(kind, x, y)}<text x="${x}" y="${y + 1}" font-size="${sz[kind]}">${n}</text></g>`;
   }
   const chart = $('chart');
+  chart.classList.remove('play');
   chart.innerHTML = s;
+  playWhenVisible(chart);
   chart.querySelectorAll('.pt').forEach((el) => {
     const pick = () => selectPoint(el.dataset.key);
     el.addEventListener('click', pick);
@@ -180,9 +222,9 @@ function selectPoint(key) {
 }
 
 // ── Карточки ───────────────────────────────────────
-function card({ label, hint, n, text, minus, extra = '' }) {
+function card({ label, hint, n, text, minus, extra = '', wide = false }) {
   const a = arc(n);
-  return `<article class="card">
+  return `<article class="card${wide ? ' wide' : ''}">
     <span class="card-label">${label}</span>
     ${hint ? `<p class="card-hint">${hint}</p>` : ''}
     <h3 class="card-title">${arcTitle(n)}</h3>
@@ -205,6 +247,7 @@ function renderCards(m) {
 
   const [t1, t2] = m.tail;
   html.push(card({
+    wide: true,
     label: 'Кармический хвост',
     hint: 'Задачи, которые душа принесла с собой. С рождения эта зона в минусе — это точка роста.',
     n: m.D,
@@ -215,7 +258,7 @@ function renderCards(m) {
 
   const pp = m.purpose;
   const cell = (label, n) => `<div><span class="g-label">${label}</span><span class="g-num">${n}</span><span class="g-name">${arc(n).name}</span></div>`;
-  html.push(`<article class="card">
+  html.push(`<article class="card wide">
     <span class="card-label">Предназначение</span>
     <p class="card-hint">Личное — до 40 лет, социальное — 40–60, духовное — после 60.</p>
     <div class="grid-purpose">
@@ -228,13 +271,14 @@ function renderCards(m) {
   </article>`);
 
   $('cards').innerHTML = html.join('');
+  revealAll($('cards'));
 }
 
 function renderPairCards() {
   const { m, m1, m2, n1, n2 } = current;
   const html = [];
   const name1 = n1 || 'Первый партнёр', name2 = n2 || 'Второй партнёр';
-  html.push(`<article class="card">
+  html.push(`<article class="card wide">
     <span class="card-label">Вы по отдельности</span>
     <p class="card-hint">Центры личных матриц — характер каждого.</p>
     <div class="duo">
@@ -263,6 +307,7 @@ function renderPairCards() {
     text: `${PAIR[m.purpose.personal].pair} ${PAIR[m.purpose.personal].task}`,
   }));
   $('cards').innerHTML = html.join('');
+  revealAll($('cards'));
 }
 
 // ── Карта здоровья ─────────────────────────────────
@@ -287,6 +332,8 @@ function renderHealth(m) {
     minus: arc(k).minus,
   });
 
+  revealAll($('health'));
+
   $('healthBody').querySelectorAll('tr').forEach((tr) => {
     const pick = () => {
       const r = h.rows.find((x) => x.key === tr.dataset.key);
@@ -300,6 +347,12 @@ function renderHealth(m) {
 }
 
 // ── Показ результата ───────────────────────────────
+const desktop = window.matchMedia('(min-width: 1000px)');
+function scrollToResult() {
+  const el = $('result');
+  if (desktop.matches) window.scrollTo({ top: 0, behavior: 'smooth' });
+  else el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
 function setHash(params) {
   history.replaceState(null, '', '#' + new URLSearchParams(params).toString());
 }
@@ -320,7 +373,7 @@ function show(name, date, { scroll = true, sex } = {}) {
   if (name) params.n = name;
   if (gender !== 'n') params.g = gender;
   setHash(params);
-  if (scroll) $('result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  if (scroll) scrollToResult();
 }
 
 function showPair(n1, d1, n2, d2, { scroll = true } = {}) {
@@ -339,7 +392,7 @@ function showPair(n1, d1, n2, d2, { scroll = true } = {}) {
   if (n1) params.n1 = n1;
   if (n2) params.n2 = n2;
   setHash(params);
-  if (scroll) $('result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  if (scroll) scrollToResult();
 }
 
 $('form').addEventListener('submit', (e) => {
