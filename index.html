@@ -101,6 +101,20 @@
 </div>
 
 <main class="main">
+<div class="placeholder" id="placeholder">
+  <svg aria-hidden="true" viewBox="0 0 360 360" width="360" height="360" fill="none" stroke="currentColor">
+    <circle cx="180" cy="180" r="150" stroke-opacity="0.35"/>
+    <circle cx="180" cy="180" r="160" stroke-opacity="0.2" stroke-dasharray="1 5"/>
+    <path d="M30 180 L180 30 L330 180 L180 330 Z" stroke-opacity="0.8"/>
+    <rect x="74" y="74" width="212" height="212" stroke-opacity="0.5"/>
+    <path d="M74 74 L286 286 M286 74 L74 286 M30 180 H330 M180 30 V330" stroke-opacity="0.18"/>
+    <circle cx="180" cy="180" r="27" fill="currentColor" fill-opacity="0.15"/>
+  </svg>
+  <p class="placeholder-text ph-empty">Введи дату рождения —<br>здесь появится твоя матрица</p>
+  <button type="button" class="placeholder-text ph-ready" id="toResult">Твоя матрица — ниже<span class="ph-arrow" aria-hidden="true">↓</span></button>
+</div>
+</main>
+
 <section class="result" id="result" hidden>
   <div class="result-head">
     <h2 class="section-title" id="resultTitle">ТВОЯ МАТРИЦА</h2>
@@ -144,19 +158,6 @@
   </div>
   <p class="note">Матрица судьбы — система самопознания, а не точная наука. Воспринимай трактовки как повод задуматься о себе.</p>
 </section>
-
-<div class="placeholder" id="placeholder" aria-hidden="true">
-  <svg viewBox="0 0 360 360" width="360" height="360" fill="none" stroke="currentColor">
-    <circle cx="180" cy="180" r="150" stroke-opacity="0.35"/>
-    <circle cx="180" cy="180" r="160" stroke-opacity="0.2" stroke-dasharray="1 5"/>
-    <path d="M30 180 L180 30 L330 180 L180 330 Z" stroke-opacity="0.8"/>
-    <rect x="74" y="74" width="212" height="212" stroke-opacity="0.5"/>
-    <path d="M74 74 L286 286 M286 74 L74 286 M30 180 H330 M180 30 V330" stroke-opacity="0.18"/>
-    <circle cx="180" cy="180" r="27" fill="currentColor" fill-opacity="0.15"/>
-  </svg>
-  <p class="placeholder-text">Введи дату рождения —<br>здесь появится твоя матрица</p>
-</div>
-</main>
 
 <footer class="footer">✦ АРКАНА ✦</footer>
 </div>

@@ -247,7 +247,6 @@ function renderCards(m) {
 
   const [t1, t2] = m.tail;
   html.push(card({
-    wide: true,
     label: 'Кармический хвост',
     hint: 'Задачи, которые душа принесла с собой. С рождения эта зона в минусе — это точка роста.',
     n: m.D,
@@ -258,7 +257,7 @@ function renderCards(m) {
 
   const pp = m.purpose;
   const cell = (label, n) => `<div><span class="g-label">${label}</span><span class="g-num">${n}</span><span class="g-name">${arc(n).name}</span></div>`;
-  html.push(`<article class="card wide">
+  html.push(`<article class="card span2">
     <span class="card-label">Предназначение</span>
     <p class="card-hint">Личное — до 40 лет, социальное — 40–60, духовное — после 60.</p>
     <div class="grid-purpose">
@@ -413,12 +412,13 @@ function renderHealth(m) {
 }
 
 // ── Показ результата ───────────────────────────────
-const desktop = window.matchMedia('(min-width: 1000px)');
 function scrollToResult() {
-  const el = $('result');
-  if (desktop.matches) window.scrollTo({ top: 0, behavior: 'smooth' });
-  else el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  $('result').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
+// Пока результата нет, на ПК справа видна заглушка; после расчёта она подсказывает, что матрица ниже.
+new MutationObserver(() => document.body.classList.toggle('has-result', !$('result').hidden))
+  .observe($('result'), { attributes: true, attributeFilter: ['hidden'] });
+$('toResult').addEventListener('click', scrollToResult);
 function setHash(params) {
   history.replaceState(null, '', '#' + new URLSearchParams(params).toString());
 }
