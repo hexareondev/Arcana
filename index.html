@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oranienbaum&family=Raleway:wght@400;500;600&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Symbols&text=%E2%98%89%E2%98%BD%E2%98%BF%E2%99%80%E2%99%82%E2%99%83%E2%99%84%E2%99%85%E2%99%86%E2%99%87%E2%98%8A%E2%99%88%E2%99%89%E2%99%8A%E2%99%8B%E2%99%8C%E2%99%8D%E2%99%8E%E2%99%8F%E2%99%90%E2%99%91%E2%99%92%E2%99%93%E2%98%8C%E2%98%8D%E2%96%B3%E2%96%A1%E2%9A%B9&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=5">
+<link rel="stylesheet" href="css/style.css?v=6">
 </head>
 <body>
 <div class="frame">
@@ -99,47 +99,25 @@
     <p class="privacy">Матрицы складываются по точкам — у пары получаются свои числа</p>
   </form>
 
+  <div class="subtabs" id="natalSub" role="tablist" aria-label="Тип карты" hidden>
+    <button type="button" role="tab" class="subtab active" data-sub="one" aria-selected="true">Одна карта</button>
+    <button type="button" role="tab" class="subtab" data-sub="syn" aria-selected="false">Синастрия · пара</button>
+  </div>
+
   <form id="natalForm" class="form" novalidate hidden autocomplete="off">
-    <div class="field">
-      <label for="nName">Имя <span class="muted">(необязательно)</span></label>
-      <input id="nName" type="text" maxlength="40" autocomplete="off" placeholder="Например, Аня">
-    </div>
-    <div class="field">
-      <label for="nDate">Дата рождения</label>
-      <input id="nDate" class="date-input" type="text" inputmode="numeric" maxlength="10" placeholder="ДД.ММ.ГГГГ" required>
-      <p class="error" role="alert" hidden></p>
-    </div>
-    <div class="field">
-      <label for="nTime">Время рождения</label>
-      <input id="nTime" class="time-input" type="text" inputmode="numeric" maxlength="5" placeholder="ЧЧ:ММ">
-      <p class="error" role="alert" hidden></p>
-      <label class="check"><input type="checkbox" id="nNoTime"><span>Не знаю точное время</span></label>
-    </div>
-    <div class="field place-field">
-      <label for="nPlace">Место рождения</label>
-      <div class="combo">
-        <input id="nPlace" type="text" maxlength="80" placeholder="Начни вводить город" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="placeList">
-        <ul class="place-list" id="placeList" role="listbox" hidden></ul>
-      </div>
-      <p class="place-picked" id="placePicked" hidden></p>
-      <p class="error" role="alert" hidden></p>
-      <button type="button" class="link-btn" id="manualToggle">Ввести координаты вручную</button>
-    </div>
-    <div class="manual" id="manualBox" hidden>
-      <div class="manual-row">
-        <div class="field"><label for="nLat">Широта</label><input id="nLat" type="text" inputmode="decimal" placeholder="55.03"></div>
-        <div class="field"><label for="nLon">Долгота</label><input id="nLon" type="text" inputmode="decimal" placeholder="82.92"></div>
-      </div>
-      <div class="field">
-        <label for="nZone">Часовой пояс</label>
-        <input id="nZone" type="text" list="zoneList" placeholder="Asia/Novosibirsk или UTC+07:00">
-        <datalist id="zoneList"></datalist>
-      </div>
-      <p class="muted small">Северная широта и восточная долгота — со знаком «+», южная и западная — со знаком «−».</p>
-    </div>
+    <div id="nPerson" class="person"></div>
     <button class="btn btn-accent" type="submit">ПОСТРОИТЬ КАРТУ</button>
     <p class="privacy">Поиск города идёт через сервис Open-Meteo, сама карта считается на твоём устройстве</p>
   </form>
+
+  <form id="synForm" class="form" novalidate hidden autocomplete="off">
+    <fieldset class="partner"><legend>Первый человек</legend><div id="saPerson" class="person"></div></fieldset>
+    <div class="pair-sep" aria-hidden="true"><span></span>✦<span></span></div>
+    <fieldset class="partner"><legend>Второй человек</legend><div id="sbPerson" class="person"></div></fieldset>
+    <button class="btn btn-accent" type="submit">СРАВНИТЬ КАРТЫ</button>
+    <p class="privacy">Синастрия — наложение двух натальных карт: как планеты одного человека отзываются в карте другого</p>
+  </form>
+  <datalist id="zoneList"></datalist>
 </section>
 </div>
 
@@ -262,6 +240,48 @@
   <p class="note">Дома — по системе Плацидуса (за полярным кругом — Порфирия). Положения планет — библиотека astronomy-engine.</p>
 </section>
 
+<section class="result natal-result syn-result" id="synResult" hidden>
+  <div class="result-head">
+    <h2 class="section-title">СИНАСТРИЯ</h2>
+    <p class="muted" id="sSub"></p>
+  </div>
+  <p class="note warn" id="sNoTimeNote" hidden></p>
+  <div class="wheel-legend" id="sLegend"></div>
+  <div class="wheel-wrap">
+    <svg id="biwheel" class="wheel" viewBox="0 0 600 600" role="img" aria-label="Двойной круг синастрии"></svg>
+  </div>
+  <div class="point-info" id="sInfo" aria-live="polite">Нажми на планету, чтобы увидеть её связи с картой партнёра</div>
+
+  <section class="n-block">
+    <h2 class="section-title">СОВМЕСТИМОСТЬ</h2>
+    <div class="score-total" id="sTotal"></div>
+    <div class="balance" id="sScores"></div>
+  </section>
+
+  <section class="n-block">
+    <h2 class="section-title">КЛЮЧЕВЫЕ СВЯЗИ</h2>
+    <p class="card-hint center">Самые важные аспекты между вашими картами. Мягкие связи — где вам легко, напряжённые — где есть искра и споры.</p>
+    <div class="cards" id="sKey"></div>
+  </section>
+
+  <section class="n-block" id="sOverlayBlock">
+    <h2 class="section-title">ПЛАНЕТЫ В ДОМАХ ПАРТНЁРА</h2>
+    <p class="card-hint center">В какие сферы жизни другого человека попадают твои планеты — там вы влияете друг на друга сильнее всего.</p>
+    <div class="overlay" id="sOverlay"></div>
+  </section>
+
+  <section class="n-block">
+    <h2 class="section-title">ВСЕ АСПЕКТЫ</h2>
+    <ul class="aspect-list" id="sAspects"></ul>
+  </section>
+
+  <div class="actions">
+    <button class="btn btn-ghost" id="sSaveBtn" type="button">СОХРАНИТЬ</button>
+    <button class="btn btn-solid" id="sShareBtn" type="button">ССЫЛКА</button>
+  </div>
+  <p class="note">Синастрия показывает тенденции, а не приговор: любые отношения строят люди, а не планеты.</p>
+</section>
+
 <footer class="footer">✦ АРКАНА ✦</footer>
 </div>
 </div>
@@ -297,6 +317,6 @@
 
 <div class="toast" id="toast" role="status" hidden></div>
 
-<script type="module" src="js/app.js?v=5"></script>
+<script type="module" src="js/app.js?v=6"></script>
 </body>
 </html>

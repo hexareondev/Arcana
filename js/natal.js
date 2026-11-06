@@ -223,3 +223,69 @@ export function calcNatal(input) {
     elements, modalities,
   };
 }
+
+// ── Синастрия ──────────────────────────────────────
+const SYN_ORBS = { conjunction: 7, opposition: 7, trine: 6, square: 6, sextile: 4 };
+
+/** Точки карты для синастрии: 10 планет + асцендент, если известно время. */
+function synPoints(c) {
+  const pts = c.planets.filter((p) => p.key !== 'node').map((p) => ({ key: p.key, lon: p.lon }));
+  if (c.houses) pts.push({ key: 'asc', lon: c.houses.asc });
+  return pts;
+}
+
+// Сферы совместимости: какие пары планет к ним относятся
+const SYN_CATS = {
+  emotions: (a, b) => a === 'moon' || b === 'moon',
+  attraction: (a, b) => {
+    const s = new Set([a, b]);
+    return (s.has('venus') && s.has('mars')) || (s.has('mars') && (s.has('sun') || s.has('moon') || s.has('pluto') || s.has('asc')))
+      || (s.has('venus') && s.has('pluto')) || (a === 'mars' && b === 'mars');
+  },
+  communication: (a, b) => a === 'mercury' || b === 'mercury',
+  love: (a, b) => (a === 'venus' || b === 'venus') && ['sun', 'moon', 'venus', 'jupiter', 'asc', 'mars'].includes(a === 'venus' ? b : a),
+  longterm: (a, b) => a === 'saturn' || b === 'saturn' || a === 'jupiter' || b === 'jupiter',
+};
+
+export function calcSynastry(c1, c2) {
+  const p1 = synPoints(c1), p2 = synPoints(c2);
+  const aspects = [];
+  for (const x of p1) {
+    for (const y of p2) {
+      const d = angDist(x.lon, y.lon);
+      const bonus = (LUMINARY.has(x.key) || LUMINARY.has(y.key)) ? 1 : 0;
+      for (const asp of ASPECTS) {
+        const orb = Math.abs(d - asp.angle);
+        if (orb <= SYN_ORBS[asp.key] + bonus) {
+          aspects.push({ a: x.key, b: y.key, type: asp.key, orb, max: SYN_ORBS[asp.key] + bonus });
+          break;
+        }
+      }
+    }
+  }
+  aspects.sort((x, y) => x.orb - y.orb);
+
+  // Шкалы 0–100: мягкие аспекты поднимают, напряжённые опускают (в «притяжении» дают искру)
+  const scores = {};
+  for (const [cat, test] of Object.entries(SYN_CATS)) {
+    let v = 58, n = 0;
+    for (const a of aspects) {
+      if (!test(a.a, a.b)) continue;
+      const w = 1 - a.orb / (a.max + 1);
+      n++;
+      const saturn = a.a === 'saturn' || a.b === 'saturn';
+      if (a.type === 'trine' || a.type === 'sextile') v += (a.type === 'trine' ? 15 : 11) * w;
+      else if (a.type === 'conjunction') v += (saturn ? 6 : 13) * w;
+      else if (cat === 'attraction') v += 7 * w;
+      else v -= (saturn ? 12 : 9) * w;
+    }
+    scores[cat] = { value: Math.round(Math.max(8, Math.min(97, v))), count: n };
+  }
+  const vals = Object.values(scores).map((x) => x.value);
+  const total = Math.round(vals.reduce((s, x) => s + x, 0) / vals.length);
+
+  // Наложение домов: планеты одного в домах другого
+  const overlay = (from, to) => (to.houses ? from.planets.filter((p) => p.key !== 'node').map((p) => ({ key: p.key, house: houseOf(p.lon, to.houses.cusps) })) : null);
+
+  return { aspects, scores, total, overlayAinB: overlay(c1, c2), overlayBinA: overlay(c2, c1) };
+}

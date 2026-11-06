@@ -1,7 +1,8 @@
-import { calcMatrix, calcHealth, calcPair, calcYears, ageAt, activePoint, parseDate, formatDate } from './matrix.js?v=5';
-import { ARCANA, POSITIONS, PAIR, PAIR_POSITIONS, CHAKRAS, YEARS } from './arcana.js?v=5';
-import { drawStory } from './story.js?v=5';
-import { initNatal, openNatal, natalFromHash, natalCurrent } from './natal-ui.js?v=5';
+import { calcMatrix, calcHealth, calcPair, calcYears, ageAt, activePoint, parseDate, formatDate } from './matrix.js?v=6';
+import { ARCANA, POSITIONS, PAIR, PAIR_POSITIONS, CHAKRAS, YEARS } from './arcana.js?v=6';
+import { drawStory } from './story.js?v=6';
+import { initNatal, openNatal, natalFromHash, natalCurrent } from './natal-ui.js?v=6';
+import { initSyn, applyNatalSub, natalSub, setSub, synFromHash, openSyn, openSynRecord } from './syn-ui.js?v=6';
 
 const $ = (id) => document.getElementById(id);
 
@@ -75,16 +76,23 @@ function setMode(next) {
   });
   $('form').hidden = next !== 'single';
   $('pairForm').hidden = next !== 'pair';
-  $('natalForm').hidden = next !== 'natal';
   document.body.classList.remove('mode-single', 'mode-pair', 'mode-natal');
   document.body.classList.add('mode-' + next);
-  const ph = document.querySelector('.ph-empty');
-  if (ph) ph.innerHTML = next === 'natal' ? 'Введи дату, время и город —<br>здесь появится твоя карта'
-    : next === 'pair' ? 'Введи две даты —<br>здесь появится матрица пары' : 'Введи дату рождения —<br>здесь появится твоя матрица';
-  const ready = $('toResult');
-  if (ready) ready.firstChild.textContent = next === 'natal' ? 'Твоя карта — ниже' : next === 'pair' ? 'Матрица пары — ниже' : 'Твоя матрица — ниже';
   $('result').hidden = !(current && current.type === next);
-  $('natalResult').hidden = !(next === 'natal' && natalCurrent);
+  $('natalSub').hidden = next !== 'natal';
+  if (next === 'natal') applyNatalSub();
+  else ['natalForm', 'synForm', 'natalResult', 'synResult'].forEach((id) => { $(id).hidden = true; });
+  refreshPlaceholder();
+}
+
+function refreshPlaceholder() {
+  const syn = mode === 'natal' && natalSub() === 'syn';
+  const ph = document.querySelector('.ph-empty');
+  if (ph) ph.innerHTML = syn ? 'Введи данные двоих —<br>здесь появится синастрия'
+    : mode === 'natal' ? 'Введи дату, время и город —<br>здесь появится твоя карта'
+      : mode === 'pair' ? 'Введи две даты —<br>здесь появится матрица пары' : 'Введи дату рождения —<br>здесь появится твоя матрица';
+  const ready = $('toResult');
+  if (ready) ready.firstChild.textContent = syn ? 'Синастрия — ниже' : mode === 'natal' ? 'Твоя карта — ниже' : mode === 'pair' ? 'Матрица пары — ниже' : 'Твоя матрица — ниже';
 }
 document.querySelectorAll('.tab[data-mode]').forEach((t) => t.addEventListener('click', () => setMode(t.dataset.mode)));
 
@@ -427,12 +435,12 @@ function scrollToResult() {
   $('result').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 // Пока результата нет, на ПК справа видна заглушка; после расчёта она подсказывает, что матрица ниже.
+const RESULTS = ['result', 'natalResult', 'synResult'];
 const resultObserver = new MutationObserver(() =>
-  document.body.classList.toggle('has-result', !$('result').hidden || !$('natalResult').hidden));
-resultObserver.observe($('result'), { attributes: true, attributeFilter: ['hidden'] });
-resultObserver.observe($('natalResult'), { attributes: true, attributeFilter: ['hidden'] });
+  document.body.classList.toggle('has-result', RESULTS.some((id) => !$(id).hidden)));
+RESULTS.forEach((id) => resultObserver.observe($(id), { attributes: true, attributeFilter: ['hidden'] }));
 $('toResult').addEventListener('click', () => {
-  const el = !$('natalResult').hidden ? $('natalResult') : $('result');
+  const el = $(RESULTS.find((id) => !$(id).hidden) || 'result');
   el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 });
 function setHash(params) {
@@ -512,7 +520,8 @@ function currentRecord() {
   return { d: formatDate(current.date), n: current.name, g: current.g };
 }
 const sameRecord = (a, b) => (a.t || 'single') === (b.t || 'single')
-  && (a.t === 'natal'
+  && (a.t === 'syn' ? a.a === b.a && a.b === b.b
+    : a.t === 'natal'
     ? a.d === b.d && a.tm === b.tm && (a.n || '') === (b.n || '') && a.p && b.p && a.p.lat === b.p.lat && a.p.lon === b.p.lon
     : a.t === 'pair'
     ? a.d1 === b.d1 && a.d2 === b.d2 && (a.n1 || '') === (b.n1 || '') && (a.n2 || '') === (b.n2 || '')
@@ -616,7 +625,10 @@ function renderSaved() {
   $('savedEmpty').hidden = list.length > 0;
   $('savedList').innerHTML = list.map((x, i) => {
     let title, sub;
-    if (x.t === 'natal') {
+    if (x.t === 'syn') {
+      title = x.n || 'Синастрия';
+      sub = 'синастрия · две натальные карты';
+    } else if (x.t === 'natal') {
       title = x.n || 'Натальная карта';
       sub = `карта · ${x.d}${x.tm ? ' ' + x.tm : ''}${x.p && x.p.name ? ' · ' + x.p.name : ''}`;
     } else if (x.t === 'pair') {
@@ -670,9 +682,16 @@ $('savedList').addEventListener('click', (e) => {
   }
   const item = list[i];
   if (!item) return;
+  if (item.t === 'syn') {
+    dialog.close();
+    setMode('natal');
+    openSynRecord(item);
+    return;
+  }
   if (item.t === 'natal') {
     dialog.close();
     setMode('natal');
+    setSub('one');
     openNatal({ name: item.n || '', d: item.d, tm: item.tm, p: item.p });
     return;
   }
@@ -693,8 +712,10 @@ $('savedList').addEventListener('click', (e) => {
 function fromHash() {
   const params = new URLSearchParams(location.hash.slice(1));
   const clip = (s) => (s || '').slice(0, 40);
+  const syn = synFromHash(params);
+  if (syn) { setMode('natal'); openSyn(syn); return; }
   const natal = natalFromHash(params);
-  if (natal) { setMode('natal'); openNatal(natal); return; }
+  if (natal) { setMode('natal'); setSub('one'); openNatal(natal); return; }
   const p1 = parseDate(params.get('p1')), p2 = parseDate(params.get('p2'));
   if (p1 && p2) { openPair(clip(params.get('n1')), p1, clip(params.get('n2')), p2); return; }
   const date = parseDate(params.get('d'));
@@ -702,6 +723,7 @@ function fromHash() {
 }
 
 initNatal({ g, toast, setHash, playWhenVisible, revealAll, saveRecord, shareLink });
+initSyn({ toast, setHash, playWhenVisible, revealAll, saveRecord, shareLink, refreshPlaceholder });
 document.body.classList.add('mode-single');
 updateBadge();
 fromHash();

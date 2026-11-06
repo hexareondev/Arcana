@@ -607,6 +607,46 @@ tr.reveal, .year-row.reveal { transform: none; }
   .aspect-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 28px; }
 }
 
+
+/* ── Синастрия ─────────────────────────────────── */
+.subtabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin-top: -6px; }
+.subtab {
+  min-height: 40px; border: 1px solid var(--brass-faint); background: transparent; color: var(--ivory-2);
+  font-family: var(--body); font-size: 13px; letter-spacing: 0.04em; cursor: pointer;
+  transition: border-color .2s ease, color .2s ease, background-color .2s ease;
+}
+.subtab:hover { border-color: var(--brass); }
+.subtab.active { border-color: var(--terra-light); color: var(--ivory); background: rgba(217, 130, 95, 0.12); }
+.person { display: flex; flex-direction: column; gap: 16px; }
+.wheel-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 22px; font-size: 13px; color: var(--ivory-2); }
+.lg { display: inline-flex; align-items: center; gap: 8px; }
+.lg i { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+.lg-a i { background: var(--ivory); }
+.lg-b i { background: var(--terra-light); }
+.wheel .who-b .w-pglyph { fill: var(--terra-light); }
+.wheel .who-b .w-ptick { stroke: var(--terra-light); }
+.wheel .who-b .w-adot { fill: var(--terra-light); }
+.syn-b { color: var(--terra-light); }
+.score-total { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
+.score-num { font-family: var(--display); font-size: 64px; line-height: 1; color: var(--brass); }
+.score-text { max-width: 460px; color: var(--ivory-2); }
+.bal-row.score .bal-bar span { background: linear-gradient(90deg, var(--terra), var(--brass)); }
+.syn-card.soft { border-color: rgba(201, 168, 106, 0.7); }
+.syn-card.tense { border-color: rgba(217, 130, 95, 0.6); }
+.syn-card .asp-sym { color: var(--brass); }
+.syn-card.tense .asp-sym { color: var(--terra-light); }
+.overlay { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
+.ov-col h3 { margin: 0 0 8px; font-family: var(--display); font-weight: 400; font-size: 19px; text-align: center; color: var(--ivory); }
+.ov-col ul { list-style: none; margin: 0; padding: 0; }
+.ov-col li { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 8px; padding: 9px 4px; border-bottom: 1px solid var(--brass-faint); font-size: 14px; color: var(--ivory-2); }
+.ov-col li .glyph { color: var(--brass); font-size: 18px; text-align: center; }
+.ov-col li b { color: var(--ivory); font-weight: 600; }
+.center { text-align: center; }
+@media (min-width: 1000px) {
+  .overlay { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; }
+  .syn-result > .n-block, .syn-result > .note, .syn-result > .actions { max-width: 1000px; margin-left: auto; margin-right: auto; }
+}
+
 /* ══ Анимации ═══════════════════════════════════ */
 .hero { position: relative; }
 .hero > *:not(.stars) { position: relative; }

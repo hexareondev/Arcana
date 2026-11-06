@@ -1,9 +1,10 @@
 // Интерфейс натальной карты: форма, поиск города, круг, трактовки.
-import { loadAstronomy, calcNatal, formatOffset, formatDeg, isValidZone, SIGNS, angDist } from './natal.js?v=5';
-import { PLANETS, SIGNS_INFO, HOUSES_INFO, ASPECTS_INFO, ELEMENTS_INFO, MODALITIES_INFO, SUN_IN, MOON_IN, ASC_IN } from './natal-texts.js?v=5';
-import { parseDate, formatDate } from './matrix.js?v=5';
-import { IN_SIGN } from './natal-signs.js?v=5';
-import { IN_HOUSE } from './natal-houses.js?v=5';
+import { loadAstronomy, calcNatal, formatOffset, formatDeg, isValidZone, SIGNS, angDist } from './natal.js?v=6';
+import { PLANETS, SIGNS_INFO, HOUSES_INFO, ASPECTS_INFO, ELEMENTS_INFO, MODALITIES_INFO, SUN_IN, MOON_IN, ASC_IN } from './natal-texts.js?v=6';
+import { parseDate, formatDate } from './matrix.js?v=6';
+import { IN_SIGN } from './natal-signs.js?v=6';
+import { IN_HOUSE } from './natal-houses.js?v=6';
+import { personFieldsHTML, attachPerson, parseTime, fmtTime } from './place-field.js?v=6';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -12,126 +13,8 @@ const gl = (s) => s + TEXT;
 const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
 
 let ctx = null;          // помощники из app.js
-let place = null;        // { name, label, lat, lon, zone }
+let person = null;       // поля формы одной карты
 export let natalCurrent = null;
-
-// ── Время ──────────────────────────────────────────
-function parseTime(str) {
-  const m = /^(\d{1,2}):(\d{2})$/.exec(String(str || '').trim());
-  if (!m) return null;
-  const hour = Number(m[1]), minute = Number(m[2]);
-  if (hour > 23 || minute > 59) return null;
-  return { hour, minute };
-}
-const fmtTime = ({ hour, minute }) => `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
-
-function fieldError(input, msg) {
-  const el = input.closest('.field').querySelector('.error');
-  if (!msg) { el.hidden = true; input.removeAttribute('aria-invalid'); return; }
-  el.textContent = msg; el.hidden = false; input.setAttribute('aria-invalid', 'true');
-}
-
-// ── Поиск города (Open-Meteo) ──────────────────────
-let searchTimer = null, searchAbort = null, results = [], activeIdx = -1;
-
-async function searchPlaces(q) {
-  if (searchAbort) searchAbort.abort();
-  searchAbort = new AbortController();
-  const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=8&language=ru&format=json`;
-  const res = await fetch(url, { signal: searchAbort.signal });
-  if (!res.ok) throw new Error('HTTP ' + res.status);
-  const data = await res.json();
-  return (data.results || []).filter((r) => r.timezone).map((r) => ({
-    name: r.name,
-    label: [r.name, r.admin1 && r.admin1 !== r.name ? r.admin1 : '', r.country].filter(Boolean).join(', '),
-    lat: r.latitude, lon: r.longitude, zone: r.timezone,
-  }));
-}
-
-function renderPlaceList() {
-  const list = $('placeList');
-  const input = $('nPlace');
-  if (!results.length) { list.hidden = true; input.setAttribute('aria-expanded', 'false'); return; }
-  list.innerHTML = results.map((r, i) => `<li role="option" id="pl${i}" class="${i === activeIdx ? 'active' : ''}" aria-selected="${i === activeIdx}" data-i="${i}">
-    <b>${esc(r.name)}</b><span>${esc(r.label.split(', ').slice(1).join(', '))}</span></li>`).join('');
-  list.hidden = false;
-  input.setAttribute('aria-expanded', 'true');
-  if (activeIdx >= 0) input.setAttribute('aria-activedescendant', 'pl' + activeIdx);
-  else input.removeAttribute('aria-activedescendant');
-}
-
-function pickPlace(p) {
-  place = p;
-  $('nPlace').value = p.name;
-  results = []; activeIdx = -1; renderPlaceList();
-  showPicked();
-  fieldError($('nPlace'), '');
-}
-
-function showPicked() {
-  const el = $('placePicked');
-  if (!place) { el.hidden = true; return; }
-  el.innerHTML = `${esc(place.label)} · ${place.lat.toFixed(2)}°, ${place.lon.toFixed(2)}° · ${esc(place.zone)}`;
-  el.hidden = false;
-}
-
-function setupPlaceSearch() {
-  const input = $('nPlace');
-  input.addEventListener('input', () => {
-    place = null; showPicked();
-    const q = input.value.trim();
-    clearTimeout(searchTimer);
-    if (q.length < 2) { results = []; renderPlaceList(); return; }
-    searchTimer = setTimeout(async () => {
-      try {
-        results = await searchPlaces(q);
-        activeIdx = results.length ? 0 : -1;
-        renderPlaceList();
-        if (!results.length) fieldError(input, 'Ничего не нашлось. Попробуй иначе или введи координаты вручную.');
-        else fieldError(input, '');
-      } catch (err) {
-        if (err.name === 'AbortError') return;
-        fieldError(input, 'Поиск городов сейчас недоступен — введи координаты вручную.');
-        openManual(true);
-      }
-    }, 350);
-  });
-  input.addEventListener('keydown', (e) => {
-    if ($('placeList').hidden) return;
-    if (e.key === 'ArrowDown') { e.preventDefault(); activeIdx = (activeIdx + 1) % results.length; renderPlaceList(); }
-    else if (e.key === 'ArrowUp') { e.preventDefault(); activeIdx = (activeIdx - 1 + results.length) % results.length; renderPlaceList(); }
-    else if (e.key === 'Enter' && activeIdx >= 0) { e.preventDefault(); pickPlace(results[activeIdx]); }
-    else if (e.key === 'Escape') { results = []; renderPlaceList(); }
-  });
-  input.addEventListener('blur', () => setTimeout(() => { results = []; renderPlaceList(); }, 150));
-  $('placeList').addEventListener('mousedown', (e) => {
-    const li = e.target.closest('li');
-    if (li) { e.preventDefault(); pickPlace(results[Number(li.dataset.i)]); }
-  });
-}
-
-function openManual(force) {
-  const box = $('manualBox');
-  const open = force === true ? true : box.hidden;
-  box.hidden = !open;
-  $('manualToggle').textContent = open ? 'Скрыть ручной ввод' : 'Ввести координаты вручную';
-  if (open && !$('zoneList').children.length) {
-    let zones = [];
-    try { zones = Intl.supportedValuesOf('timeZone'); } catch { /* старый браузер */ }
-    const fixed = [];
-    for (let h = -12; h <= 14; h++) fixed.push(`UTC${h < 0 ? '-' : '+'}${String(Math.abs(h)).padStart(2, '0')}:00`);
-    $('zoneList').innerHTML = [...zones, ...fixed].map((z) => `<option value="${z}">`).join('');
-  }
-}
-
-function readManual() {
-  const num = (v) => Number(String(v).replace(',', '.').replace('−', '-').trim());
-  const lat = num($('nLat').value), lon = num($('nLon').value), zone = $('nZone').value.trim();
-  if (!isFinite(lat) || !isFinite(lon) || $('nLat').value.trim() === '' || $('nLon').value.trim() === '') return { error: 'Укажи широту и долготу числами' };
-  if (Math.abs(lat) > 90 || Math.abs(lon) > 180) return { error: 'Широта от −90 до 90, долгота от −180 до 180' };
-  if (!zone || !isValidZone(zone)) return { error: 'Укажи часовой пояс, например Asia/Novosibirsk или UTC+07:00' };
-  return { name: `${lat.toFixed(2)}°, ${lon.toFixed(2)}°`, label: `${lat.toFixed(2)}°, ${lon.toFixed(2)}°`, lat, lon, zone };
-}
 
 // ── Круг карты ─────────────────────────────────────
 const CX = 300, CY = 300;
@@ -378,14 +261,8 @@ export async function openNatal({ name = '', d, tm, p }) {
   const date = parseDate(d);
   if (!date || !p || !isFinite(p.lat) || !isFinite(p.lon) || !isValidZone(p.zone)) return false;
   const time = tm ? parseTime(tm) : null;
-  $('nName').value = name;
-  $('nDate').value = formatDate(date);
-  $('nTime').value = time ? fmtTime(time) : '';
-  $('nNoTime').checked = !time;
-  $('nTime').disabled = !time;
-  place = { name: p.name || `${(+p.lat).toFixed(2)}°, ${(+p.lon).toFixed(2)}°`, label: p.label || p.name || '', lat: +p.lat, lon: +p.lon, zone: p.zone };
-  $('nPlace').value = place.name;
-  showPicked();
+  const place = { name: p.name || `${(+p.lat).toFixed(2)}°, ${(+p.lon).toFixed(2)}°`, label: p.label || p.name || '', lat: +p.lat, lon: +p.lon, zone: p.zone };
+  person.fill({ name, date, time, place });
   try {
     await showNatal({ name, date, time, place });
   } catch (err) {
@@ -406,46 +283,17 @@ export function natalFromHash(params) {
 
 export function initNatal(helpers) {
   ctx = helpers;
-  setupPlaceSearch();
-  $('manualToggle').addEventListener('click', () => openManual());
-
-  const time = $('nTime');
-  time.addEventListener('input', () => {
-    const digits = time.value.replace(/\D/g, '').slice(0, 4);
-    time.value = digits.length > 2 ? digits.slice(0, 2) + ':' + digits.slice(2) : digits;
-    fieldError(time, '');
-  });
-  $('nNoTime').addEventListener('change', () => {
-    time.disabled = $('nNoTime').checked;
-    if (time.disabled) fieldError(time, '');
-  });
+  $('nPerson').innerHTML = personFieldsHTML('n');
+  person = attachPerson('n', { parseDate, formatDate });
 
   $('natalForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const dateInput = $('nDate');
-    const date = parseDate(dateInput.value);
-    if (!date) { fieldError(dateInput, dateInput.value ? 'Проверь дату: формат ДД.ММ.ГГГГ' : 'Введи дату рождения'); dateInput.focus(); return; }
-    fieldError(dateInput, '');
-
-    let t = null;
-    if (!$('nNoTime').checked) {
-      t = parseTime(time.value);
-      if (!t) { fieldError(time, time.value ? 'Проверь время: формат ЧЧ:ММ, например 14:30' : 'Введи время или отметь «Не знаю точное время»'); time.focus(); return; }
-    }
-
-    let p = place;
-    if (!$('manualBox').hidden && (!p || $('nLat').value.trim())) {
-      const m = readManual();
-      if (m.error) { fieldError($('nPlace'), m.error); return; }
-      p = m;
-    }
-    if (!p) { fieldError($('nPlace'), 'Выбери город из списка или введи координаты вручную'); $('nPlace').focus(); return; }
-    fieldError($('nPlace'), '');
-
+    const r = person.read();
+    if (r.error) { r.focus.focus(); return; }
     const btn = $('natalForm').querySelector('button[type=submit]');
     btn.disabled = true; btn.textContent = 'СЧИТАЮ…';
     try {
-      await showNatal({ name: $('nName').value.trim(), date, time: t, place: p });
+      await showNatal(r);
     } catch (err) {
       ctx.toast('Не удалось построить карту: ' + err.message);
     } finally {
@@ -461,4 +309,4 @@ export function initNatal(helpers) {
 }
 
 export const natalSignName = (lon) => SIGNS_INFO[Math.floor(lon / 30)].name;
-export { SIGNS, angDist };
+export { SIGNS, angDist, gl, esc, ROMAN };
