@@ -53,6 +53,8 @@ export function calcMatrix({ day, month, year }) {
 
   const a2 = r(A, E), b2 = r(B, E), c2 = r(C, E), d2 = r(D, E);
   const a1 = r(A, a2), b1 = r(B, b2), c1 = r(C, c2), d1 = r(D, d2);
+  // Точки рядом с центром на левом и верхнем лучах (нужны для чакры Анахата)
+  const a3 = r(a2, E), b3 = r(b2, E);
 
   // Линия денег и любви: точка пересечения X между внутренними точками C и D.
   const X = r(c2, d2);
@@ -71,10 +73,51 @@ export function calcMatrix({ day, month, year }) {
 
   return {
     A, B, C, D, E, F, G, H, I,
-    a1, a2, b1, b2, c1, c2, d1, d2,
+    a1, a2, a3, b1, b2, b3, c1, c2, d1, d2,
     X, money, love,
     tail: [d2, d1, D], // принято записывать от центра к краю
     talents: [B, b1, b2],
     purpose: { sky, earth, personal, male, female, social, spiritual, planetary },
   };
+}
+
+/**
+ * Карта здоровья: 7 чакр, у каждой Физика, Энергия и Эмоции (= Физика + Энергия).
+ * Итог: сумма Физик, сумма Энергий, ключ здоровья = их сумма.
+ */
+export const CHAKRA_KEYS = ['sahasrara', 'ajna', 'vishuddha', 'anahata', 'manipura', 'svadhisthana', 'muladhara'];
+
+export function calcHealth(m) {
+  const pairs = {
+    sahasrara: [m.A, m.B],
+    ajna: [m.a1, m.b1],
+    vishuddha: [m.a2, m.b2],
+    anahata: [m.a3, m.b3],
+    manipura: [m.E, m.E],
+    svadhisthana: [m.c2, m.d2],
+    muladhara: [m.C, m.D],
+  };
+  const rows = CHAKRA_KEYS.map((key) => {
+    const [phys, energy] = pairs[key];
+    return { key, phys, energy, emo: r(phys, energy) };
+  });
+  const phys = reduce(rows.reduce((s, x) => s + x.phys, 0));
+  const energy = reduce(rows.reduce((s, x) => s + x.energy, 0));
+  return { rows, total: { phys, energy, emo: r(phys, energy) } };
+}
+
+/**
+ * Матрица совместимости: точки двух матриц складываются попарно
+ * (A + A, B + B, …) и приводятся к 1–22.
+ */
+export function calcPair(m1, m2) {
+  const out = {};
+  for (const [k, v] of Object.entries(m1)) {
+    if (typeof v === 'number') out[k] = r(v, m2[k]);
+  }
+  out.tail = [out.d2, out.d1, out.D];
+  out.talents = [out.B, out.b1, out.b2];
+  out.purpose = {};
+  for (const k of Object.keys(m1.purpose)) out.purpose[k] = r(m1.purpose[k], m2.purpose[k]);
+  return out;
 }

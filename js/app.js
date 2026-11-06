@@ -1,5 +1,5 @@
-import { calcMatrix, parseDate, formatDate } from './matrix.js';
-import { ARCANA, POSITIONS } from './arcana.js';
+import { calcMatrix, calcHealth, calcPair, parseDate, formatDate } from './matrix.js';
+import { ARCANA, POSITIONS, PAIR, PAIR_POSITIONS, CHAKRAS } from './arcana.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -12,7 +12,8 @@ const SLOGANS = [
 const STORAGE_KEY = 'arcana.saved.v1';
 
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-// Пол: 'f' — женский, 'm' — мужской, 'n' — не указан (нейтральные формулировки).
+
+// ── Пол: 'f' — женский, 'm' — мужской, 'n' — не указан (нейтральные формулировки)
 let gender = 'n';
 const GENDER_IDX = { f: 0, m: 1, n: 2 };
 const g = (t) => t.replace(/\{([^{}|]*)\|([^{}|]*)\|([^{}|]*)\}/g, (_, ...p) => p[GENDER_IDX[gender] ?? 2]);
@@ -32,26 +33,50 @@ const arcTitle = (n) => `${arc(n).roman} · ${arc(n).name}`;
 // ── Слоган ─────────────────────────────────────────
 $('slogan').innerHTML = SLOGANS[Math.floor(Math.random() * SLOGANS.length)];
 
-// ── Маска даты ─────────────────────────────────────
-const dateInput = $('date');
-dateInput.addEventListener('input', () => {
-  const digits = dateInput.value.replace(/\D/g, '').slice(0, 8);
-  let out = digits.slice(0, 2);
-  if (digits.length > 2) out += '.' + digits.slice(2, 4);
-  if (digits.length > 4) out += '.' + digits.slice(4, 8);
-  dateInput.value = out;
-  hideError();
+// ── Маска даты для всех полей с датой ──────────────
+const errorOf = (input) => input.parentElement.querySelector('.error');
+document.querySelectorAll('.date-input').forEach((input) => {
+  input.addEventListener('input', () => {
+    const digits = input.value.replace(/\D/g, '').slice(0, 8);
+    let out = digits.slice(0, 2);
+    if (digits.length > 2) out += '.' + digits.slice(2, 4);
+    if (digits.length > 4) out += '.' + digits.slice(4, 8);
+    input.value = out;
+    hideError(input);
+  });
 });
 
-function showError(msg) {
-  $('dateError').textContent = msg;
-  $('dateError').hidden = false;
-  dateInput.setAttribute('aria-invalid', 'true');
+function showError(input, msg) {
+  const el = errorOf(input);
+  el.textContent = msg;
+  el.hidden = false;
+  input.setAttribute('aria-invalid', 'true');
 }
-function hideError() {
-  $('dateError').hidden = true;
-  dateInput.removeAttribute('aria-invalid');
+function hideError(input) {
+  errorOf(input).hidden = true;
+  input.removeAttribute('aria-invalid');
 }
+function readDate(input) {
+  const date = parseDate(input.value);
+  if (!date) showError(input, input.value ? 'Проверь дату: нужен формат ДД.ММ.ГГГГ, например 15.03.1995' : 'Введи дату рождения');
+  return date;
+}
+
+// ── Вкладки ────────────────────────────────────────
+let mode = 'single';
+function setMode(next) {
+  mode = next;
+  document.querySelectorAll('.tab[data-mode]').forEach((t) => {
+    const on = t.dataset.mode === next;
+    t.classList.toggle('active', on);
+    t.setAttribute('aria-selected', String(on));
+  });
+  $('form').hidden = next !== 'single';
+  $('pairForm').hidden = next !== 'pair';
+  if (!current || current.type !== next) $('result').hidden = true;
+  else $('result').hidden = false;
+}
+document.querySelectorAll('.tab[data-mode]').forEach((t) => t.addEventListener('click', () => setMode(t.dataset.mode)));
 
 // ── Хранилище ──────────────────────────────────────
 function loadSaved() {
@@ -67,7 +92,8 @@ function updateBadge() {
 }
 
 // ── Текущее состояние ──────────────────────────────
-let current = null; // { name, date: {day, month, year}, m }
+// single: { type, name, date, m, g }   pair: { type, n1, n2, d1, d2, m1, m2, m }
+let current = null;
 
 // ── Схема ──────────────────────────────────────────
 const C0 = 180;
@@ -97,6 +123,22 @@ const POINT_INFO = {
   c1: 'Материальная сфера', c2: 'Материальная сфера, вход в денежный канал',
   d1: 'Кармический хвост, середина', d2: 'Кармический хвост, внутренняя точка',
 };
+const POINT_INFO_PAIR = {
+  A: 'Пара со стороны — какими вас видят',
+  B: 'Ресурс пары — что вас наполняет',
+  C: 'Совместная реализация в мире',
+  D: 'Задача пары',
+  E: 'Атмосфера пары — что связывает вас внутри',
+  F: 'Родовая программа пары (линия отцов)',
+  G: 'Родовая программа пары (линия матерей)',
+  H: 'Родовая программа пары (линия отцов)',
+  I: 'Родовая программа пары (линия матерей)',
+  a1: 'Как вы проявляетесь вместе', a2: 'Как вы проявляетесь вместе, глубинный уровень',
+  b1: 'Ресурс пары: второй уровень', b2: 'Ресурс пары: глубинный уровень',
+  c1: 'Материальная сфера пары', c2: 'Вход в денежный канал пары',
+  d1: 'Кармический хвост пары, середина', d2: 'Кармический хвост пары, внутренняя точка',
+};
+const pointLabel = (key) => (current && current.type === 'pair' ? POINT_INFO_PAIR : POINT_INFO)[key];
 
 function shapeFor(kind, x, y) {
   switch (kind) {
@@ -118,22 +160,23 @@ function drawChart(m) {
     <path class="ln ln-mid" stroke-dasharray="3 3" d="M${C0 + IN} ${C0} L${C0} ${C0 + IN}"/>`;
   for (const [key, [x, y, kind]] of Object.entries(LAYOUT)) {
     const n = m[key];
-    s += `<g class="pt ${kind}" data-key="${key}" tabindex="0" role="button" aria-label="${esc(POINT_INFO[key])}: ${n}, ${esc(arc(n).name)}">
+    s += `<g class="pt ${kind}" data-key="${key}" tabindex="0" role="button" aria-label="${esc(pointLabel(key))}: ${n}, ${esc(arc(n).name)}">
       ${shapeFor(kind, x, y)}<text x="${x}" y="${y + 1}" font-size="${sz[kind]}">${n}</text></g>`;
   }
   const chart = $('chart');
   chart.innerHTML = s;
-  chart.querySelectorAll('.pt').forEach((g) => {
-    const pick = () => selectPoint(g.dataset.key);
-    g.addEventListener('click', pick);
-    g.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); } });
+  chart.querySelectorAll('.pt').forEach((el) => {
+    const pick = () => selectPoint(el.dataset.key);
+    el.addEventListener('click', pick);
+    el.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); } });
   });
+  $('pointInfo').innerHTML = 'Нажми на любое число в схеме, чтобы узнать, что оно значит';
 }
 
 function selectPoint(key) {
   const n = current.m[key];
-  $('chart').querySelectorAll('.pt').forEach((g) => g.classList.toggle('sel', g.dataset.key === key));
-  $('pointInfo').innerHTML = `<strong>${n} · ${esc(arc(n).name)}</strong>${esc(POINT_INFO[key])}<br><span class="muted">${esc(arc(n).keys.join(' · '))}</span>`;
+  $('chart').querySelectorAll('.pt').forEach((el) => el.classList.toggle('sel', el.dataset.key === key));
+  $('pointInfo').innerHTML = `<strong>${n} · ${esc(arc(n).name)}</strong>${esc(pointLabel(key))}<br><span class="muted">${esc(arc(n).keys.join(' · '))}</span>`;
 }
 
 // ── Карточки ───────────────────────────────────────
@@ -150,29 +193,26 @@ function card({ label, hint, n, text, minus, extra = '' }) {
   </article>`;
 }
 
+const tailHtml = ([t1, t2, t3], label) =>
+  `<div class="tail" aria-label="${label} ${t1}, ${t2}, ${t3}">${t1}<span class="sep">·</span>${t2}<span class="sep">·</span>${t3}</div>`;
+
 function renderCards(m) {
   const html = [];
-  for (const key of ['E', 'A', 'B', 'C']) {
-    const p = POSITIONS[key], n = m[key];
-    html.push(card({ label: p.title, hint: p.hint, n, text: arc(n)[p.aspect], minus: arc(n).minus }));
-  }
-  for (const key of ['money', 'love']) {
+  for (const key of ['E', 'A', 'B', 'C', 'money', 'love']) {
     const p = POSITIONS[key], n = m[key];
     html.push(card({ label: p.title, hint: p.hint, n, text: arc(n)[p.aspect], minus: arc(n).minus }));
   }
 
-  // Кармический хвост
-  const [t1, t2, t3] = m.tail;
+  const [t1, t2] = m.tail;
   html.push(card({
     label: 'Кармический хвост',
     hint: 'Задачи, которые душа принесла с собой. С рождения эта зона в минусе — это точка роста.',
     n: m.D,
-    extra: `<div class="tail" aria-label="Кармический хвост ${t1}, ${t2}, ${t3}">${t1}<span class="sep">·</span>${t2}<span class="sep">·</span>${t3}</div>`,
+    extra: tailHtml(m.tail, 'Кармический хвост'),
     text: `${arc(m.D).lesson} Внутри хвоста — ${arc(t1).name} и ${arc(t2).name}: присмотрись к темам «${arc(t1).keys[0]}» и «${arc(t2).keys[0]}» — через них задача и проявляется.`,
     minus: arc(m.D).minus,
   }));
 
-  // Предназначение
   const pp = m.purpose;
   const cell = (label, n) => `<div><span class="g-label">${label}</span><span class="g-num">${n}</span><span class="g-name">${arc(n).name}</span></div>`;
   html.push(`<article class="card">
@@ -190,35 +230,132 @@ function renderCards(m) {
   $('cards').innerHTML = html.join('');
 }
 
+function renderPairCards() {
+  const { m, m1, m2, n1, n2 } = current;
+  const html = [];
+  const name1 = n1 || 'Первый партнёр', name2 = n2 || 'Второй партнёр';
+  html.push(`<article class="card">
+    <span class="card-label">Вы по отдельности</span>
+    <p class="card-hint">Центры личных матриц — характер каждого.</p>
+    <div class="duo">
+      <div><span class="g-label">${esc(name1)}</span><span class="g-num">${m1.E}</span><span class="g-name">${arc(m1.E).name}</span></div>
+      <div><span class="g-label">${esc(name2)}</span><span class="g-num">${m2.E}</span><span class="g-name">${arc(m2.E).name}</span></div>
+    </div>
+  </article>`);
+
+  for (const key of ['E', 'A', 'B']) {
+    const p = PAIR_POSITIONS[key], n = m[key];
+    html.push(card({ label: p.title, hint: p.hint, n, text: PAIR[n].pair }));
+  }
+  html.push(card({ label: PAIR_POSITIONS.money.title, hint: PAIR_POSITIONS.money.hint, n: m.money, text: arc(m.money).money }));
+  html.push(card({
+    label: PAIR_POSITIONS.D.title,
+    hint: PAIR_POSITIONS.D.hint,
+    n: m.D,
+    extra: tailHtml(m.tail, 'Кармический хвост пары'),
+    text: PAIR[m.D].task,
+    minus: arc(m.D).minus,
+  }));
+  html.push(card({
+    label: 'Предназначение пары',
+    hint: 'Зачем вы встретились и что можете дать друг другу.',
+    n: m.purpose.personal,
+    text: `${PAIR[m.purpose.personal].pair} ${PAIR[m.purpose.personal].task}`,
+  }));
+  $('cards').innerHTML = html.join('');
+}
+
+// ── Карта здоровья ─────────────────────────────────
+function renderHealth(m) {
+  const h = calcHealth(m);
+  const numCell = (n) => `<td><span class="cell"><span class="num">${n}</span><span class="num-name">${esc(arc(n).name)}</span></span></td>`;
+  $('healthBody').innerHTML = h.rows.map((r) => {
+    const c = CHAKRAS[r.key];
+    return `<tr data-key="${r.key}" tabindex="0" aria-label="${c.name}: физика ${r.phys}, энергия ${r.energy}, эмоции ${r.emo}">
+      <td><span class="cell"><span class="ch-name">${c.name}</span><span class="ch-place">${c.place}</span></span></td>
+      ${numCell(r.phys)}${numCell(r.energy)}${numCell(r.emo)}
+    </tr>`;
+  }).join('');
+  $('healthFoot').innerHTML = `<tr><td><span class="cell"><span class="ch-name">Итог</span></span></td>${numCell(h.total.phys)}${numCell(h.total.energy)}${numCell(h.total.emo)}</tr>`;
+
+  const k = h.total.emo;
+  $('healthKey').innerHTML = `<div class="chakra-info" id="chakraInfo">Нажми на чакру в таблице</div>` + card({
+    label: 'Ключ здоровья',
+    hint: 'Общая энергия карты: на что опираться, чтобы чувствовать себя в ресурсе.',
+    n: k,
+    text: arc(k).plus,
+    minus: arc(k).minus,
+  });
+
+  $('healthBody').querySelectorAll('tr').forEach((tr) => {
+    const pick = () => {
+      const r = h.rows.find((x) => x.key === tr.dataset.key);
+      const c = CHAKRAS[r.key];
+      $('healthBody').querySelectorAll('tr').forEach((x) => x.classList.toggle('sel', x === tr));
+      $('chakraInfo').innerHTML = `<strong>${c.name} · ${c.place}</strong>${c.sphere}<br><span class="muted">Физика — ${esc(arc(r.phys).name)}, энергия — ${esc(arc(r.energy).name)}, эмоции — ${esc(arc(r.emo).name)}</span>`;
+    };
+    tr.addEventListener('click', pick);
+    tr.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); } });
+  });
+}
+
 // ── Показ результата ───────────────────────────────
+function setHash(params) {
+  history.replaceState(null, '', '#' + new URLSearchParams(params).toString());
+}
+
 function show(name, date, { scroll = true, sex } = {}) {
   if (sex) setGender(sex);
   const m = calcMatrix(date);
-  current = { name, date, m, g: gender };
+  current = { type: 'single', name, date, m, g: gender };
   $('resultTitle').textContent = name ? `МАТРИЦА: ${name.toUpperCase()}` : 'ТВОЯ МАТРИЦА';
   $('resultDate').textContent = formatDate(date);
   drawChart(m);
-  $('pointInfo').innerHTML = 'Нажми на любое число в схеме, чтобы узнать, что оно значит';
   renderCards(m);
+  renderHealth(m);
+  $('health').hidden = false;
   $('result').hidden = false;
 
-  const params = new URLSearchParams({ d: formatDate(date) });
-  if (name) params.set('n', name);
-  if (gender !== 'n') params.set('g', gender);
-  history.replaceState(null, '', '#' + params.toString());
+  const params = { d: formatDate(date) };
+  if (name) params.n = name;
+  if (gender !== 'n') params.g = gender;
+  setHash(params);
+  if (scroll) $('result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
 
+function showPair(n1, d1, n2, d2, { scroll = true } = {}) {
+  gender = 'n'; // в паре тексты на «вы», переключатель пола не трогаем
+  const m1 = calcMatrix(d1), m2 = calcMatrix(d2);
+  current = { type: 'pair', n1, n2, d1, d2, m1, m2, m: calcPair(m1, m2) };
+  const both = n1 && n2 ? `${n1} + ${n2}` : '';
+  $('resultTitle').textContent = 'МАТРИЦА ПАРЫ';
+  $('resultDate').textContent = (both ? both + ' · ' : '') + `${formatDate(d1)} + ${formatDate(d2)}`;
+  drawChart(current.m);
+  renderPairCards();
+  $('health').hidden = true;
+  $('result').hidden = false;
+
+  const params = { p1: formatDate(d1), p2: formatDate(d2) };
+  if (n1) params.n1 = n1;
+  if (n2) params.n2 = n2;
+  setHash(params);
   if (scroll) $('result').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 $('form').addEventListener('submit', (e) => {
   e.preventDefault();
-  const date = parseDate(dateInput.value);
-  if (!date) {
-    showError(dateInput.value ? 'Проверь дату: нужен формат ДД.ММ.ГГГГ, например 15.03.1995' : 'Введи дату рождения');
-    dateInput.focus();
-    return;
-  }
+  const date = readDate($('date'));
+  if (!date) { $('date').focus(); return; }
   show($('name').value.trim(), date, { sex: readGender() });
+});
+
+$('pairForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const d1 = readDate($('date1'));
+  const d2 = readDate($('date2'));
+  if (!d1) { $('date1').focus(); return; }
+  if (!d2) { $('date2').focus(); return; }
+  showPair($('name1').value.trim(), d1, $('name2').value.trim(), d2);
 });
 
 // ── Сохранить / поделиться ─────────────────────────
@@ -230,12 +367,23 @@ function toast(msg) {
   toast.timer = setTimeout(() => { t.hidden = true; }, 2600);
 }
 
+function currentRecord() {
+  if (current.type === 'pair') {
+    return { t: 'pair', d1: formatDate(current.d1), d2: formatDate(current.d2), n1: current.n1, n2: current.n2 };
+  }
+  return { d: formatDate(current.date), n: current.name, g: current.g };
+}
+const sameRecord = (a, b) => (a.t || 'single') === (b.t || 'single')
+  && (a.t === 'pair'
+    ? a.d1 === b.d1 && a.d2 === b.d2 && (a.n1 || '') === (b.n1 || '') && (a.n2 || '') === (b.n2 || '')
+    : a.d === b.d && (a.n || '') === (b.n || '') && (a.g || 'n') === (b.g || 'n'));
+
 $('saveBtn').addEventListener('click', () => {
   if (!current) return;
   const list = loadSaved();
-  const d = formatDate(current.date);
-  if (list.some((x) => x.d === d && x.n === current.name && (x.g || 'n') === current.g)) { toast('Эта матрица уже сохранена'); return; }
-  list.unshift({ d, n: current.name, g: current.g, at: Date.now() });
+  const rec = currentRecord();
+  if (list.some((x) => sameRecord(x, rec))) { toast('Уже сохранено'); return; }
+  list.unshift({ ...rec, at: Date.now() });
   if (storeSaved(list)) { updateBadge(); toast('Сохранено в «Мои матрицы»'); }
   else toast('Не получилось сохранить: браузер запрещает хранилище');
 });
@@ -243,8 +391,13 @@ $('saveBtn').addEventListener('click', () => {
 $('shareBtn').addEventListener('click', async () => {
   if (!current) return;
   const url = location.href;
-  const who = current.name ? `${current.name}: ` : '';
-  const text = `${who}центр матрицы — ${arc(current.m.E).name}. Посмотри свою в «Аркане»`;
+  let text;
+  if (current.type === 'pair') {
+    text = `Атмосфера нашей пары — ${arc(current.m.E).name}. Проверь свою совместимость в «Аркане»`;
+  } else {
+    const who = current.name ? `${current.name}: ` : '';
+    text = `${who}центр матрицы — ${arc(current.m.E).name}. Посмотри свою в «Аркане»`;
+  }
   if (navigator.share) {
     try { await navigator.share({ title: 'Аркана — матрица судьбы', text, url }); return; } catch (err) { if (err.name === 'AbortError') return; }
   }
@@ -259,11 +412,21 @@ function renderSaved() {
   const list = loadSaved();
   $('savedEmpty').hidden = list.length > 0;
   $('savedList').innerHTML = list.map((x, i) => {
-    const date = parseDate(x.d);
-    const e = date ? calcMatrix(date).E : null;
+    let title, sub;
+    if (x.t === 'pair') {
+      const a = parseDate(x.d1), b = parseDate(x.d2);
+      const e = a && b ? calcPair(calcMatrix(a), calcMatrix(b)).E : null;
+      title = `${x.n1 || '…'} + ${x.n2 || '…'}`;
+      sub = `пара${e ? ' · ' + arc(e).name : ''}`;
+    } else {
+      const date = parseDate(x.d);
+      const e = date ? calcMatrix(date).E : null;
+      title = x.n || 'Без имени';
+      sub = `${x.d}${e ? ' · ' + arc(e).name : ''}`;
+    }
     return `<li>
-      <button class="saved-open" data-i="${i}"><b>${esc(x.n || 'Без имени')}</b><span>${esc(x.d)}${e ? ' · ' + esc(arc(e).name) : ''}</span></button>
-      <button class="saved-del" data-i="${i}" aria-label="Удалить ${esc(x.n || x.d)}">✕</button>
+      <button class="saved-open" data-i="${i}"><b>${esc(title)}</b><span>${esc(sub)}</span></button>
+      <button class="saved-del" data-i="${i}" aria-label="Удалить ${esc(title)}">✕</button>
     </li>`;
   }).join('');
 }
@@ -271,6 +434,21 @@ function renderSaved() {
 $('savedBtn').addEventListener('click', () => { renderSaved(); dialog.showModal(); });
 $('closeSaved').addEventListener('click', () => dialog.close());
 dialog.addEventListener('click', (e) => { if (e.target === dialog) dialog.close(); });
+
+function openPair(n1, d1, n2, d2) {
+  $('name1').value = n1 || '';
+  $('name2').value = n2 || '';
+  $('date1').value = formatDate(d1);
+  $('date2').value = formatDate(d2);
+  showPair(n1 || '', d1, n2 || '', d2);
+  setMode('pair');
+}
+function openSingle(n, date, sex) {
+  $('name').value = n || '';
+  $('date').value = formatDate(date);
+  show(n || '', date, { sex: sex || 'n' });
+  setMode('single');
+}
 
 $('savedList').addEventListener('click', (e) => {
   const btn = e.target.closest('button');
@@ -285,23 +463,28 @@ $('savedList').addEventListener('click', (e) => {
     return;
   }
   const item = list[i];
-  const date = item && parseDate(item.d);
-  if (!date) return;
-  dialog.close();
-  $('name').value = item.n || '';
-  dateInput.value = item.d;
-  show(item.n || '', date, { sex: item.g || 'n' });
+  if (!item) return;
+  if (item.t === 'pair') {
+    const a = parseDate(item.d1), b = parseDate(item.d2);
+    if (!a || !b) return;
+    dialog.close();
+    openPair(item.n1, a, item.n2, b);
+  } else {
+    const date = parseDate(item.d);
+    if (!date) return;
+    dialog.close();
+    openSingle(item.n, date, item.g);
+  }
 });
 
 // ── Старт: открыть матрицу из ссылки ───────────────
 function fromHash() {
   const params = new URLSearchParams(location.hash.slice(1));
+  const clip = (s) => (s || '').slice(0, 40);
+  const p1 = parseDate(params.get('p1')), p2 = parseDate(params.get('p2'));
+  if (p1 && p2) { openPair(clip(params.get('n1')), p1, clip(params.get('n2')), p2); return; }
   const date = parseDate(params.get('d'));
-  if (!date) return;
-  const name = (params.get('n') || '').slice(0, 40);
-  $('name').value = name;
-  dateInput.value = formatDate(date);
-  show(name, date, { scroll: true, sex: params.get('g') || 'n' });
+  if (date) openSingle(clip(params.get('n')), date, params.get('g'));
 }
 
 updateBadge();

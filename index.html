@@ -40,8 +40,9 @@
 
 <section class="panel">
   <div class="tabs" role="tablist">
-    <button class="tab active" role="tab" aria-selected="true">МАТРИЦА</button>
-    <button class="tab" role="tab" aria-selected="false" disabled title="Скоро">НАТАЛЬНАЯ КАРТА<small>скоро</small></button>
+    <button class="tab active" role="tab" aria-selected="true" data-mode="single">МАТРИЦА</button>
+    <button class="tab" role="tab" aria-selected="false" data-mode="pair">ПАРА</button>
+    <button class="tab" role="tab" aria-selected="false" disabled title="Скоро">НАТАЛЬНАЯ<small>скоро</small></button>
   </div>
 
   <form id="form" class="form" novalidate>
@@ -59,11 +60,41 @@
     </fieldset>
     <div class="field">
       <label for="date">Дата рождения</label>
-      <input id="date" name="date" type="text" inputmode="numeric" maxlength="10" placeholder="ДД.ММ.ГГГГ" autocomplete="bday" required>
+      <input id="date" class="date-input" name="date" type="text" inputmode="numeric" maxlength="10" placeholder="ДД.ММ.ГГГГ" autocomplete="bday" required>
       <p class="error" id="dateError" role="alert" hidden></p>
     </div>
     <button class="btn btn-accent" type="submit">РАССЧИТАТЬ</button>
     <p class="privacy">Ничего не сохраняется на сервере — только у тебя</p>
+  </form>
+
+  <form id="pairForm" class="form" novalidate hidden>
+    <fieldset class="partner">
+      <legend>Первый партнёр</legend>
+      <div class="field">
+        <label for="name1">Имя <span class="muted">(необязательно)</span></label>
+        <input id="name1" type="text" maxlength="40" autocomplete="off" placeholder="Имя">
+      </div>
+      <div class="field">
+        <label for="date1">Дата рождения</label>
+        <input id="date1" class="date-input" type="text" inputmode="numeric" maxlength="10" placeholder="ДД.ММ.ГГГГ" required>
+        <p class="error" role="alert" hidden></p>
+      </div>
+    </fieldset>
+    <div class="pair-sep" aria-hidden="true"><span></span>✦<span></span></div>
+    <fieldset class="partner">
+      <legend>Второй партнёр</legend>
+      <div class="field">
+        <label for="name2">Имя <span class="muted">(необязательно)</span></label>
+        <input id="name2" type="text" maxlength="40" autocomplete="off" placeholder="Имя">
+      </div>
+      <div class="field">
+        <label for="date2">Дата рождения</label>
+        <input id="date2" class="date-input" type="text" inputmode="numeric" maxlength="10" placeholder="ДД.ММ.ГГГГ" required>
+        <p class="error" role="alert" hidden></p>
+      </div>
+    </fieldset>
+    <button class="btn btn-accent" type="submit">РАССЧИТАТЬ СОВМЕСТИМОСТЬ</button>
+    <p class="privacy">Матрицы складываются по точкам — у пары получаются свои числа</p>
   </form>
 </section>
 
@@ -79,6 +110,21 @@
   <div class="point-info" id="pointInfo" aria-live="polite">Нажми на любое число в схеме, чтобы узнать, что оно значит</div>
 
   <div class="cards" id="cards"></div>
+
+  <section class="health" id="health" hidden>
+    <h2 class="section-title">КАРТА ЗДОРОВЬЯ</h2>
+    <p class="card-hint center">Энергии по семи чакрам: «Физика» — тело, «Энергия» — внутренний ресурс, «Эмоции» — их сумма. Нажми на строку, чтобы узнать, за что отвечает чакра.</p>
+    <div class="table-wrap">
+      <table class="health-table">
+        <colgroup><col class="c-name"><col><col><col></colgroup>
+        <thead><tr><th scope="col">Чакра</th><th scope="col">Физика</th><th scope="col">Энергия</th><th scope="col">Эмоции</th></tr></thead>
+        <tbody id="healthBody"></tbody>
+        <tfoot id="healthFoot"></tfoot>
+      </table>
+    </div>
+    <div id="healthKey"></div>
+    <p class="note">Карта здоровья — инструмент самопознания, а не медицинская диагностика. При любых жалобах на самочувствие обращайся к врачу.</p>
+  </section>
 
   <div class="actions">
     <button class="btn btn-ghost" id="saveBtn" type="button">СОХРАНИТЬ</button>
