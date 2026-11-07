@@ -420,3 +420,74 @@ export function scoreSynastry(aspects) {
     percentile: Math.round(clamp(normCdf(zt) * 100, 1, 99)),
   };
 }
+
+// ── Портрет партнёра ───────────────────────────────
+// Современные управители знаков (Овен … Рыбы)
+export const RULERS = ['mars', 'venus', 'mercury', 'moon', 'sun', 'mercury', 'venus', 'pluto', 'jupiter', 'saturn', 'uranus', 'neptune'];
+
+/** Десцендент, управитель VII дома и планеты в VII доме. Без времени рождения — null. */
+export function partnerPortrait(c) {
+  if (!c.houses) return null;
+  const dsc = norm(c.houses.asc + 180);
+  const dscSign = signOf(dsc);
+  const rulerKey = RULERS[dscSign];
+  const ruler = c.planets.find((p) => p.key === rulerKey);
+  const in7 = c.planets.filter((p) => p.house === 7 && p.key !== 'node');
+  return { dsc, dscSign, ruler, in7 };
+}
+
+/**
+ * Периоды, благоприятные для знакомств и отношений: точные касания
+ * Юпитера (соединение, трин, секстиль), Сатурна (соединение, трин) и Урана (соединение, трин)
+ * к десценденту, управителю VII дома и Венере.
+ */
+export function loveWindows(c, fromMs, days = 730) {
+  const targets = [{ key: 'venus', lon: c.planets.find((p) => p.key === 'venus').lon }];
+  const pp = partnerPortrait(c);
+  if (pp) {
+    targets.push({ key: 'dsc', lon: pp.dsc });
+    if (pp.ruler.key !== 'venus') targets.push({ key: 'ruler7', planet: pp.ruler.key, lon: pp.ruler.lon });
+  }
+  const allowed = { jupiter: ['conjunction', 'trine', 'sextile'], saturn: ['conjunction', 'trine'], uranus: ['conjunction', 'trine'] };
+  const DAY = 86400000;
+  const events = [];
+  let prev = null;
+  for (let i = 0; i <= days; i++) {
+    const ms = fromMs + i * DAY;
+    const t = A.MakeTime(new Date(ms));
+    const lons = Object.fromEntries(Object.keys(allowed).map((k) => [k, bodyLon(k, t)]));
+    if (prev) {
+      for (const k of Object.keys(allowed)) {
+        for (const tg of targets) {
+          for (const asp of ASPECTS.filter((a) => allowed[k].includes(a.key))) {
+            for (const sgn of asp.angle === 0 ? [1] : [1, -1]) {
+              const target = norm(tg.lon + sgn * asp.angle);
+              const d0 = norm(prev.lons[k] - target + 180) - 180;
+              const d1 = norm(lons[k] - target + 180) - 180;
+              if (Math.abs(d0) < 5 && Math.abs(d1) < 5 && (d0 === 0 || Math.sign(d0) !== Math.sign(d1))) {
+                events.push({ ms: prev.ms + (d0 / (d0 - d1 || 1)) * DAY, t: k, n: tg.key, planet: tg.planet, type: asp.key });
+              }
+            }
+          }
+        }
+      }
+    }
+    prev = { ms, lons };
+  }
+  return events.sort((a, b) => a.ms - b.ms);
+}
+
+/** Насколько человек b похож на портрет партнёра человека a. */
+export function portraitMatch(a, b) {
+  const pp = partnerPortrait(a);
+  if (!pp) return null;
+  const matches = [];
+  const key = ['sun', 'moon', 'venus', 'mars'];
+  for (const p of b.planets.filter((x) => key.includes(x.key))) {
+    if (p.sign === pp.dscSign) matches.push({ kind: 'sign', key: p.key });
+    if (houseOf(p.lon, a.houses.cusps) === 7) matches.push({ kind: 'house', key: p.key });
+    if (angDist(p.lon, pp.dsc) <= 6) matches.push({ kind: 'dsc', key: p.key });
+  }
+  if (b.houses && signOf(b.houses.asc) === pp.dscSign) matches.push({ kind: 'sign', key: 'asc' });
+  return { dscSign: pp.dscSign, matches };
+}

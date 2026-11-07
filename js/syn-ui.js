@@ -1,11 +1,12 @@
 // Синастрия: форма на двоих, двойной круг, шкалы, ключевые связи, наложение домов.
-import { loadAstronomy, calcNatal, calcSynastry, formatDeg, formatOffset, isValidZone } from './natal.js?v=9';
-import { PLANETS, SIGNS_INFO, HOUSES_INFO, ASPECTS_INFO } from './natal-texts.js?v=9';
-import { SYN_TOPICS, SYN_NATURE, SYN_CATS_INFO, HOUSE_OVERLAY, totalText } from './syn-texts.js?v=9';
-import { personFieldsHTML, attachPerson, parseTime, fmtTime } from './place-field.js?v=9';
-import { parseDate, formatDate } from './matrix.js?v=9';
-import { natalCurrent } from './natal-ui.js?v=9';
-import { drawBiWheel } from './biwheel.js?v=9';
+import { loadAstronomy, calcNatal, calcSynastry, formatDeg, formatOffset, isValidZone } from './natal.js?v=10';
+import { PLANETS, SIGNS_INFO, HOUSES_INFO, ASPECTS_INFO } from './natal-texts.js?v=10';
+import { SYN_TOPICS, SYN_NATURE, SYN_CATS_INFO, HOUSE_OVERLAY, totalText } from './syn-texts.js?v=10';
+import { personFieldsHTML, attachPerson, parseTime, fmtTime } from './place-field.js?v=10';
+import { parseDate, formatDate } from './matrix.js?v=10';
+import { natalCurrent } from './natal-ui.js?v=10';
+import { drawBiWheel } from './biwheel.js?v=10';
+import { renderPortraitMatch } from './partner-ui.js?v=10';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -167,6 +168,7 @@ export async function showSyn(a, b, { scroll = true } = {}) {
   renderScores();
   renderKey();
   renderOverlay();
+  renderPortraitMatch(synCurrent);
   renderAll();
   $('synResult').hidden = false;
   ctx.revealAll($('synResult'));

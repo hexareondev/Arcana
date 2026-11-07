@@ -790,3 +790,9 @@ tr.reveal { transform: none; }
   .tr-controls .tr-today { grid-column: auto; }
   .tr-ev { grid-template-columns: 210px minmax(0, 1fr); gap: 16px; align-items: baseline; }
 }
+
+/* ── Портрет партнёра ──────────────────────────── */
+.pm-verdict { margin: 0 0 4px; text-align: center; font-family: var(--display); font-size: 20px; color: var(--ivory-2); }
+.pm-verdict.strong { color: var(--brass); }
+.pm-verdict.none { color: var(--muted); }
+.ov-col .small { text-align: center; margin-bottom: 6px; }
