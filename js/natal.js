@@ -289,3 +289,87 @@ export function calcSynastry(c1, c2) {
 
   return { aspects, scores, total, overlayAinB: overlay(c1, c2), overlayBinA: overlay(c2, c1) };
 }
+
+// ── Транзиты ───────────────────────────────────────
+export const TRANSIT_BODIES = ['sun', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto'];
+const TR_ORB = { sun: 1.5, mercury: 1.5, venus: 1.5, mars: 2, jupiter: 2, saturn: 2, uranus: 2, neptune: 2, pluto: 2 };
+export const SLOW = ['jupiter', 'saturn', 'uranus', 'neptune', 'pluto'];
+
+/** Положения планет (и Луны) в момент ms. */
+export function skyAt(ms) {
+  const t = A.MakeTime(new Date(ms));
+  const t1 = A.MakeTime(new Date(ms + 86400000));
+  return ['sun', 'moon', ...TRANSIT_BODIES.slice(1)].map((key) => {
+    const lon = bodyLon(key, t);
+    const next = bodyLon(key, t1);
+    const speed = norm(next - lon + 180) - 180;
+    return { key, lon, sign: signOf(lon), deg: degInSign(lon), retro: key !== 'sun' && key !== 'moon' && speed < 0, speed };
+  });
+}
+
+function natalTargets(c) {
+  const pts = c.planets.filter((p) => p.key !== 'node').map((p) => ({ key: p.key, lon: p.lon }));
+  if (c.houses) { pts.push({ key: 'asc', lon: c.houses.asc }); pts.push({ key: 'mc', lon: c.houses.mc }); }
+  return pts;
+}
+
+/** Транзитные аспекты к натальной карте на момент ms. */
+export function calcTransits(natal, ms) {
+  const sky = skyAt(ms);
+  const skyNext = skyAt(ms + 86400000);
+  const targets = natalTargets(natal);
+  const out = [];
+  for (const tp of sky) {
+    if (tp.key === 'moon') continue;
+    const tn = skyNext.find((x) => x.key === tp.key);
+    for (const np of targets) {
+      const d = angDist(tp.lon, np.lon);
+      for (const asp of ASPECTS) {
+        const orb = Math.abs(d - asp.angle);
+        if (orb <= TR_ORB[tp.key]) {
+          const orbNext = Math.abs(angDist(tn.lon, np.lon) - asp.angle);
+          out.push({ t: tp.key, n: np.key, type: asp.key, orb, applying: orbNext < orb });
+          break;
+        }
+      }
+    }
+  }
+  return { sky, aspects: out };
+}
+
+/**
+ * Точные транзиты медленных планет к главным точкам карты за период.
+ * Шаг — сутки; момент точности уточняется линейно между днями.
+ */
+export function upcomingTransits(natal, fromMs, days = 365) {
+  const keys = new Set(['sun', 'moon', 'mercury', 'venus', 'mars', 'asc', 'mc']);
+  const targets = natalTargets(natal).filter((p) => keys.has(p.key));
+  const DAY = 86400000;
+  const events = [];
+  let prev = null;
+  for (let i = 0; i <= days; i++) {
+    const ms = fromMs + i * DAY;
+    const t = A.MakeTime(new Date(ms));
+    const lons = Object.fromEntries(SLOW.map((k) => [k, bodyLon(k, t)]));
+    if (prev) {
+      for (const k of SLOW) {
+        for (const np of targets) {
+          for (const asp of ASPECTS) {
+            // знаковое отклонение от точного угла: разность долгот минус угол аспекта (в обе стороны)
+            for (const sgn of asp.angle === 0 || asp.angle === 180 ? [1] : [1, -1]) {
+              const target = norm(np.lon + sgn * asp.angle);
+              const d0 = norm(prev.lons[k] - target + 180) - 180;
+              const d1 = norm(lons[k] - target + 180) - 180;
+              if (Math.abs(d0) < 5 && Math.abs(d1) < 5 && (d0 === 0 || Math.sign(d0) !== Math.sign(d1))) {
+                const f = d0 / (d0 - d1 || 1);
+                events.push({ ms: prev.ms + f * DAY, t: k, n: np.key, type: asp.key });
+              }
+            }
+          }
+        }
+      }
+    }
+    prev = { ms, lons };
+  }
+  return events.sort((a, b) => a.ms - b.ms);
+}

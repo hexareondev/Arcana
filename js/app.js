@@ -1,8 +1,8 @@
-import { calcMatrix, calcHealth, calcPair, calcYears, ageAt, activePoint, parseDate, formatDate } from './matrix.js?v=6';
-import { ARCANA, POSITIONS, PAIR, PAIR_POSITIONS, CHAKRAS, YEARS } from './arcana.js?v=6';
-import { drawStory } from './story.js?v=6';
-import { initNatal, openNatal, natalFromHash, natalCurrent } from './natal-ui.js?v=6';
-import { initSyn, applyNatalSub, natalSub, setSub, synFromHash, openSyn, openSynRecord } from './syn-ui.js?v=6';
+import { calcMatrix, calcHealth, calcPair, calcYears, ageAt, activePoint, parseDate, formatDate } from './matrix.js?v=7';
+import { ARCANA, POSITIONS, PAIR, PAIR_POSITIONS, CHAKRAS, YEARS } from './arcana.js?v=7';
+import { drawStory } from './story.js?v=7';
+import { initNatal, openNatal, natalFromHash, natalCurrent } from './natal-ui.js?v=7';
+import { initSyn, applyNatalSub, natalSub, setSub, synFromHash, openSyn, openSynRecord } from './syn-ui.js?v=7';
 
 const $ = (id) => document.getElementById(id);
 
@@ -87,6 +87,7 @@ function setMode(next) {
 
 function refreshPlaceholder() {
   const syn = mode === 'natal' && natalSub() === 'syn';
+  document.body.classList.toggle('two-col', mode === 'pair' || syn);
   const ph = document.querySelector('.ph-empty');
   if (ph) ph.innerHTML = syn ? 'Введи данные двоих —<br>здесь появится синастрия'
     : mode === 'natal' ? 'Введи дату, время и город —<br>здесь появится твоя карта'

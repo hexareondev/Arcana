@@ -405,8 +405,8 @@ a.btn { display: inline-flex; align-items: center; justify-content: center; text
   .actions { max-width: 560px; width: 100%; margin: 8px auto 0; }
 
   .placeholder {
-    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px;
-    min-height: 640px; color: var(--brass); text-align: center;
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 24px;
+    padding-top: 56px; min-height: 640px; color: var(--brass); text-align: center;
   }
   .ph-ready { display: none; }
   .has-result .ph-empty { display: none; }
@@ -713,4 +713,78 @@ tr.reveal { transform: none; }
   .chart .ring, .chart .ring-dots, .chart .pt, .reveal, .wheel .w-planet { opacity: 1; transform: none; }
   .wheel .w-asp { opacity: 0.8; }
   .stars { display: none; }
+}
+
+/* ── ПК: формы на двоих в две колонки (Пара, Синастрия) ── */
+@media (min-width: 1000px) {
+  .two-col .frame-inner {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas:
+      "top top"
+      "hero main"
+      "tabs main"
+      "sub main"
+      "forms forms"
+      "result result"
+      "foot foot";
+  }
+  .two-col .side, .two-col .panel { display: contents; }
+  .two-col .hero { grid-area: hero; padding: 12px 32px 0; }
+  .two-col .tabs { grid-area: tabs; margin: 28px 32px 0; width: calc(100% - 64px); max-width: 460px; justify-self: center; align-self: start; }
+  .two-col #natalSub { grid-area: sub; margin: 12px 32px 0; width: calc(100% - 64px); max-width: 460px; justify-self: center; }
+  .two-col .main { grid-area: main; padding: 0 44px 0 24px; }
+  .two-col .placeholder { min-height: 420px; gap: 16px; padding-top: 24px; }
+  .two-col .placeholder svg { width: 300px; height: 300px; }
+
+  .two-col #pairForm, .two-col #synForm {
+    grid-area: forms;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: start;
+    column-gap: 28px; row-gap: 18px;
+    margin-top: 32px; padding: 32px 44px 8px;
+    border-top: 1px solid var(--brass-faint);
+  }
+  .two-col #pairForm > fieldset:first-of-type, .two-col #synForm > fieldset:first-of-type { grid-column: 1; grid-row: 1; }
+  .two-col #pairForm > fieldset:last-of-type, .two-col #synForm > fieldset:last-of-type { grid-column: 3; grid-row: 1; }
+  .two-col .pair-sep {
+    grid-column: 2; grid-row: 1; align-self: stretch;
+    flex-direction: column; margin: 0;
+  }
+  .two-col .pair-sep span { width: 1px; height: auto; flex: 1; }
+  .two-col #pairForm > .btn, .two-col #synForm > .btn { grid-column: 1 / -1; justify-self: center; width: 100%; max-width: 460px; }
+  .two-col #pairForm > .privacy, .two-col #synForm > .privacy { grid-column: 1 / -1; }
+  .two-col.has-result .result { margin-top: 36px; }
+}
+
+/* ── Транзиты ──────────────────────────────────── */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.tr-controls { width: 100%; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: start; }
+.tr-controls .tr-today { grid-column: 1 / -1; }
+.tr-btn {
+  min-height: 48px; padding: 0 14px; border: 1px solid var(--brass-soft); background: transparent; color: var(--ivory-2);
+  font-family: var(--body); font-size: 13px; cursor: pointer; transition: border-color .2s ease, color .2s ease;
+}
+.tr-btn:hover { border-color: var(--brass); color: var(--ivory); }
+.tr-today { border-color: var(--terra-light); color: var(--ivory); }
+.tr-date { gap: 4px; }
+.tr-date input { height: 48px; font-size: 20px; }
+.tr-moon { margin: 0; text-align: center; color: var(--ivory-2); font-size: 14px; }
+.tr-moon .glyph { color: var(--brass); }
+.sub-title { margin: 18px 0 0; font-family: var(--display); font-weight: 400; font-size: 22px; letter-spacing: 0.08em; text-align: center; }
+.tr-card.slow { border-color: var(--brass); }
+.tr-card .card-title { font-size: 24px; }
+.tr-cal { list-style: none; margin: 0; padding: 0; width: 100%; }
+.tr-ev { display: grid; grid-template-columns: 1fr; gap: 4px; padding: 12px 6px; border-bottom: 1px solid var(--brass-faint); }
+.tr-when { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--brass); }
+.tr-what { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 6px; font-size: 14px; color: var(--ivory-2); }
+.tr-what .glyph { font-size: 17px; color: var(--ivory); }
+.tr-what .asp-sym { color: var(--brass); }
+.tr-ev.tense .asp-sym { color: var(--terra-light); }
+.tr-what b { font-weight: 600; color: var(--ivory); }
+.tr-what small { flex-basis: 100%; color: var(--muted); font-size: 13px; }
+@media (min-width: 640px) {
+  .tr-controls { grid-template-columns: auto minmax(0, 220px) auto auto; justify-content: center; }
+  .tr-controls .tr-today { grid-column: auto; }
+  .tr-ev { grid-template-columns: 210px minmax(0, 1fr); gap: 16px; align-items: baseline; }
 }

@@ -1,10 +1,11 @@
 // Интерфейс натальной карты: форма, поиск города, круг, трактовки.
-import { loadAstronomy, calcNatal, formatOffset, formatDeg, isValidZone, SIGNS, angDist } from './natal.js?v=6';
-import { PLANETS, SIGNS_INFO, HOUSES_INFO, ASPECTS_INFO, ELEMENTS_INFO, MODALITIES_INFO, SUN_IN, MOON_IN, ASC_IN } from './natal-texts.js?v=6';
-import { parseDate, formatDate } from './matrix.js?v=6';
-import { IN_SIGN } from './natal-signs.js?v=6';
-import { IN_HOUSE } from './natal-houses.js?v=6';
-import { personFieldsHTML, attachPerson, parseTime, fmtTime } from './place-field.js?v=6';
+import { loadAstronomy, calcNatal, formatOffset, formatDeg, isValidZone, SIGNS, angDist } from './natal.js?v=7';
+import { PLANETS, SIGNS_INFO, HOUSES_INFO, ASPECTS_INFO, ELEMENTS_INFO, MODALITIES_INFO, SUN_IN, MOON_IN, ASC_IN } from './natal-texts.js?v=7';
+import { parseDate, formatDate } from './matrix.js?v=7';
+import { IN_SIGN } from './natal-signs.js?v=7';
+import { IN_HOUSE } from './natal-houses.js?v=7';
+import { personFieldsHTML, attachPerson, parseTime, fmtTime } from './place-field.js?v=7';
+import { renderTransits, initTransits } from './transit-ui.js?v=7';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -241,6 +242,7 @@ export async function showNatal(data, { scroll = true } = {}) {
   renderBalance(chart);
   renderPlanetCards(chart);
   renderAspects(chart);
+  renderTransits(chart);
   $('natalResult').hidden = false;
   ctx.revealAll($('natalResult'));
 
@@ -285,6 +287,7 @@ export function initNatal(helpers) {
   ctx = helpers;
   $('nPerson').innerHTML = personFieldsHTML('n');
   person = attachPerson('n', { parseDate, formatDate });
+  initTransits(helpers);
 
   $('natalForm').addEventListener('submit', async (e) => {
     e.preventDefault();
