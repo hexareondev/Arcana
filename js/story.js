@@ -1,4 +1,5 @@
 // Картинка для сторис 1080×1920, рисуется на <canvas> прямо в браузере.
+import { PLANETS, SIGNS_INFO, ASPECTS_INFO } from './natal-texts.js?v=12';
 
 const W = 1080, H = 1920;
 const C = {
@@ -15,6 +16,7 @@ export async function ensureFonts() {
       document.fonts.load(`400 72px Oranienbaum`, 'АРКАНА'),
       document.fonts.load(`500 30px Raleway`, 'Матрица'),
       document.fonts.load(`600 30px Raleway`, 'Матрица'),
+      document.fonts.load(`40px "Noto Sans Symbols"`, '☉☽♈♉'),
     ]);
   } catch { /* рисуем запасными шрифтами */ }
 }
@@ -237,5 +239,150 @@ export async function drawStory(opts) {
   ctx.fillStyle = C.brass; ctx.font = `500 24px ${BODY}`;
   spaced(ctx, `✦  ${opts.url}  ✦`, cx, H - 82, 2);
 
+  return cv;
+}
+
+// ── Натальная карта ────────────────────────────────
+const SYM = '"Noto Sans Symbols", "Segoe UI Symbol", "Apple Symbols", "DejaVu Sans", sans-serif';
+const TXT = '\uFE0E';
+const EL_COLOR = { fire: '#E3966F', earth: '#C9A86A', air: '#DDD3BF', water: '#8FC1B5' };
+
+function drawNatalWheel(ctx, chart, cx, cy, k) {
+  const asc = chart.houses ? chart.houses.asc : 0;
+  const R = { out: 292 * k, zod: 250 * k, house: 214 * k, plan: 186 * k, asp: 128 * k, inner: 64 * k };
+  const ang = (lon) => (180 + (lon - asc)) * Math.PI / 180;
+  const pt = (lon, r) => [cx + r * Math.cos(ang(lon)), cy - r * Math.sin(ang(lon))];
+  const line = (a, b) => { ctx.beginPath(); ctx.moveTo(...a); ctx.lineTo(...b); ctx.stroke(); };
+  const circle = (r) => { ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke(); };
+
+  ctx.save();
+  ctx.fillStyle = 'rgba(10,32,28,0.55)';
+  ctx.beginPath(); ctx.arc(cx, cy, R.out, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = C.brass; ctx.lineWidth = 2.2; circle(R.out); circle(R.zod);
+  ctx.strokeStyle = 'rgba(201,168,106,0.35)'; ctx.lineWidth = 1.6; circle(R.house); circle(R.asp); circle(R.inner);
+
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (let i = 0; i < 12; i++) {
+    ctx.strokeStyle = 'rgba(201,168,106,0.55)'; ctx.lineWidth = 1.6;
+    line(pt(i * 30, R.zod), pt(i * 30, R.out));
+    ctx.strokeStyle = 'rgba(201,168,106,0.4)'; ctx.lineWidth = 1.2;
+    for (let d = 5; d < 30; d += 5) line(pt(i * 30 + d, R.zod), pt(i * 30 + d, R.zod - (d % 10 ? 5 : 10) * k));
+    ctx.fillStyle = EL_COLOR[SIGNS_INFO[i].element];
+    ctx.font = `${30 * k}px ${SYM}`;
+    ctx.fillText(SIGNS_INFO[i].glyph + TXT, ...pt(i * 30 + 15, (R.zod + R.out) / 2));
+  }
+
+  if (chart.houses) {
+    chart.houses.cusps.forEach((lon, i) => {
+      const axis = i % 3 === 0;
+      ctx.strokeStyle = axis ? 'rgba(201,168,106,0.95)' : 'rgba(201,168,106,0.35)';
+      ctx.lineWidth = axis ? 3 : 1.5;
+      line(pt(lon, R.inner), pt(lon, axis ? R.zod : R.house));
+      const next = chart.houses.cusps[(i + 1) % 12];
+      ctx.fillStyle = C.muted; ctx.font = `500 ${15 * k}px ${BODY}`;
+      ctx.fillText(String(i + 1), ...pt(lon + ((next - lon + 360) % 360) / 2, R.inner + 19 * k));
+    });
+    ctx.fillStyle = C.terra; ctx.font = `600 ${15 * k}px ${BODY}`;
+    ctx.fillText('ASC', ...pt(chart.houses.asc + 7, R.house + 18 * k));
+    ctx.fillText('MC', ...pt(chart.houses.mc + 6, R.house + 18 * k));
+  }
+
+  // Аспекты
+  const lonOf = Object.fromEntries(chart.planets.map((p) => [p.key, p.lon]));
+  for (const a of chart.aspects) {
+    if (a.type === 'conjunction') continue;
+    const tense = ASPECTS_INFO[a.type].nature === 'tense';
+    ctx.strokeStyle = tense ? 'rgba(217,130,95,' : 'rgba(201,168,106,';
+    ctx.strokeStyle += Math.max(0.35, 1 - a.orb / 9).toFixed(2) + ')';
+    ctx.lineWidth = 2;
+    line(pt(lonOf[a.a], R.asp), pt(lonOf[a.b], R.asp));
+  }
+
+  // Планеты: раздвигаем, чтобы не налезали
+  const pos = [...chart.planets].sort((a, b) => a.lon - b.lon).map((p) => ({ ...p, disp: p.lon }));
+  for (let it = 0; it < 40; it++) {
+    let moved = false;
+    for (let i = 0; i < pos.length; i++) {
+      const a = pos[i], b = pos[(i + 1) % pos.length];
+      const gap = (b.disp - a.disp + 360) % 360;
+      if (gap < 9.5) { const push = (9.5 - gap) / 2; a.disp -= push; b.disp += push; moved = true; }
+    }
+    if (!moved) break;
+  }
+  for (const p of pos) {
+    ctx.strokeStyle = C.ivory; ctx.lineWidth = 2.4;
+    line(pt(p.lon, R.house), pt(p.lon, R.house - 11 * k));
+    ctx.fillStyle = C.ivory;
+    ctx.beginPath(); ctx.arc(...pt(p.lon, R.asp), 3.6, 0, Math.PI * 2); ctx.fill();
+    ctx.font = `${31 * k}px ${SYM}`;
+    ctx.fillText(PLANETS[p.key].glyph + TXT, ...pt(p.disp, R.plan));
+    ctx.fillStyle = C.muted; ctx.font = `500 ${14 * k}px ${BODY}`;
+    ctx.fillText(`${Math.floor(p.deg)}°${p.retro ? 'R' : ''}`, ...pt(p.disp, R.plan - 33 * k));
+  }
+  ctx.restore();
+}
+
+/** opts: { name, sub, chart, url } */
+export async function drawNatalStory(opts) {
+  await ensureFonts();
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+  const cx = W / 2;
+  const { chart } = opts;
+  const seed = Math.floor(chart.planets.reduce((s, p) => s + p.lon * 1000, 0)) % 2147483647;
+
+  drawBackground(ctx, seed);
+  drawEmblem(ctx, cx, 118);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = C.ivory; ctx.font = `400 104px ${DISPLAY}`;
+  spaced(ctx, 'АРКАНА', cx, 300, 20);
+  ctx.fillStyle = C.brass; ctx.font = `500 28px ${BODY}`;
+  spaced(ctx, 'НАТАЛЬНАЯ КАРТА', cx, 360, 9);
+
+  let y = 448;
+  if (opts.name) {
+    ctx.fillStyle = C.ivory; fit(ctx, opts.name, DISPLAY, 400, 64, W - 220);
+    ctx.fillText(opts.name, cx, y); y += 54;
+  } else y -= 22;
+  ctx.fillStyle = C.muted; fit(ctx, opts.sub, BODY, 500, 30, W - 200);
+  ctx.fillText(opts.sub, cx, y);
+
+  drawNatalWheel(ctx, chart, cx, 968, 1.37);
+
+  // Большая тройка
+  const P = (k) => chart.planets.find((p) => p.key === k);
+  const items = [
+    { label: 'Солнце', glyph: '☉', sign: P('sun').sign },
+    { label: 'Луна', glyph: '☽', sign: P('moon').sign },
+    chart.houses ? { label: 'Асцендент', glyph: 'AC', sign: Math.floor(chart.houses.asc / 30) } : { label: 'Асцендент', glyph: 'AC', sign: null },
+  ];
+  const top = 1430, colW = (W - 200) / 3;
+  ctx.strokeStyle = C.brassFaint; ctx.lineWidth = 1.5;
+  ctx.strokeRect(100, top, W - 200, 230);
+  for (let i = 1; i < 3; i++) { ctx.beginPath(); ctx.moveTo(100 + colW * i, top + 26); ctx.lineTo(100 + colW * i, top + 204); ctx.stroke(); }
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  items.forEach((it, i) => {
+    const x = 100 + colW * i + colW / 2;
+    ctx.fillStyle = C.brass; ctx.font = `600 21px ${BODY}`;
+    spaced(ctx, it.label.toUpperCase(), x, top + 50, 4);
+    ctx.fillStyle = C.brass;
+    ctx.font = it.glyph === 'AC' ? `600 40px ${BODY}` : `52px ${SYM}`;
+    ctx.fillText(it.glyph === 'AC' ? 'AC' : it.glyph + TXT, x, top + 118);
+    ctx.fillStyle = C.ivory;
+    if (it.sign == null) { ctx.font = `400 30px ${DISPLAY}`; ctx.fillText('—', x, top + 178); }
+    else { fit(ctx, SIGNS_INFO[it.sign].name, DISPLAY, 400, 40, colW - 24); ctx.fillText(SIGNS_INFO[it.sign].name, x, top + 182); }
+  });
+
+  // Стихия
+  const els = ['fire', 'earth', 'air', 'water'];
+  const total = chart.elements.reduce((a, b) => a + b, 0) || 1;
+  const lead = chart.elements.indexOf(Math.max(...chart.elements));
+  const leadName = { fire: 'Огонь', earth: 'Земля', air: 'Воздух', water: 'Вода' }[els[lead]];
+  ctx.fillStyle = C.ivory2; ctx.font = `500 30px ${BODY}`;
+  ctx.fillText(`Ведущая стихия — ${leadName} · ${Math.round(chart.elements[lead] / total * 100)}%`, cx, 1730);
+
+  ctx.fillStyle = C.brass; ctx.font = `500 24px ${BODY}`;
+  spaced(ctx, `✦  ${opts.url}  ✦`, cx, H - 82, 2);
   return cv;
 }

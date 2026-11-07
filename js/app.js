@@ -1,8 +1,8 @@
-import { calcMatrix, calcHealth, calcPair, calcYears, ageAt, activePoint, parseDate, formatDate } from './matrix.js?v=11';
-import { ARCANA, POSITIONS, PAIR, PAIR_POSITIONS, CHAKRAS, YEARS } from './arcana.js?v=11';
-import { drawStory } from './story.js?v=11';
-import { initNatal, openNatal, openNatalData, natalFromHash, natalCurrent } from './natal-ui.js?v=11';
-import { initSyn, applyNatalSub, natalSub, setSub, synFromHash, openSyn, openSynRecord, prefillSynA, synCurrent } from './syn-ui.js?v=11';
+import { calcMatrix, calcHealth, calcPair, calcYears, ageAt, activePoint, parseDate, formatDate } from './matrix.js?v=12';
+import { ARCANA, POSITIONS, PAIR, PAIR_POSITIONS, CHAKRAS, YEARS } from './arcana.js?v=12';
+import { drawStory, drawNatalStory } from './story.js?v=12';
+import { initNatal, openNatal, openNatalData, prefillNatal, natalFromHash, natalCurrent } from './natal-ui.js?v=12';
+import { initSyn, applyNatalSub, natalSub, setSub, synFromHash, openSyn, openSynRecord, prefillSynA, synCurrent } from './syn-ui.js?v=12';
 
 const $ = (id) => document.getElementById(id);
 
@@ -603,19 +603,18 @@ function storyOptions() {
   };
 }
 
-$('storyBtn').addEventListener('click', async () => {
-  if (!current) return;
+async function openStory(build, fileBase) {
   $('storyImg').hidden = true;
   $('storyLoading').hidden = false;
+  $('storyLoading').textContent = 'Рисую картинку…';
   $('storyShare').hidden = true;
   storyDialog.showModal();
   try {
-    const canvas = await drawStory({ ...storyOptions(), arc, url: siteUrl() });
+    const canvas = await build();
     const blob = await new Promise((res) => canvas.toBlob(res, 'image/png'));
     if (storyUrl) URL.revokeObjectURL(storyUrl);
     storyUrl = URL.createObjectURL(blob);
-    const base = current.type === 'pair' ? 'arcana-para' : `arcana-${formatDate(current.date)}`;
-    storyFile = new File([blob], `${base}.png`, { type: 'image/png' });
+    storyFile = new File([blob], `${fileBase}.png`, { type: 'image/png' });
     $('storyImg').src = storyUrl;
     $('storyImg').hidden = false;
     $('storyLoading').hidden = true;
@@ -625,6 +624,22 @@ $('storyBtn').addEventListener('click', async () => {
   } catch (err) {
     $('storyLoading').textContent = 'Не получилось нарисовать картинку. Попробуй ещё раз.';
   }
+}
+
+$('storyBtn').addEventListener('click', () => {
+  if (!current) return;
+  openStory(() => drawStory({ ...storyOptions(), arc, url: siteUrl() }),
+    current.type === 'pair' ? 'arcana-para' : `arcana-${formatDate(current.date)}`);
+});
+
+$('nStoryBtn').addEventListener('click', () => {
+  if (!natalCurrent) return;
+  const n = natalCurrent;
+  const time = n.time ? `${String(n.time.hour).padStart(2, '0')}:${String(n.time.minute).padStart(2, '0')}` : 'время неизвестно';
+  openStory(() => drawNatalStory({
+    name: n.name, sub: `${formatDate(n.date)}  ·  ${time}  ·  ${n.place.name}`,
+    chart: n.chart, url: siteUrl(),
+  }), `arcana-karta-${formatDate(n.date)}`);
 });
 
 $('storyShare').addEventListener('click', async () => {
@@ -766,5 +781,126 @@ $('sSplit2').addEventListener('click', () => { if (synCurrent) { setSub('one'); 
 initNatal({ g, toast, setHash, playWhenVisible, revealAll, saveRecord, shareLink });
 initSyn({ toast, setHash, playWhenVisible, revealAll, saveRecord, shareLink, refreshPlaceholder });
 document.body.classList.add('mode-single');
+// ── Профиль «Это я» ────────────────────────────────
+const PROFILE_KEY = 'arcana.profile.v1';
+function loadProfile() {
+  try { return JSON.parse(localStorage.getItem(PROFILE_KEY)) || null; } catch { return null; }
+}
+function storeProfile(p) {
+  try {
+    if (p) localStorage.setItem(PROFILE_KEY, JSON.stringify(p)); else localStorage.removeItem(PROFILE_KEY);
+    return true;
+  } catch { return false; }
+}
+const parseTimeStr = (t) => { const m = /^(\d{2}):(\d{2})$/.exec(t || ''); return m ? { hour: +m[1], minute: +m[2] } : null; };
+const profileNatalData = (p) => (p && p.p ? { name: p.name || '', date: parseDate(p.d), time: parseTimeStr(p.tm), place: p.p } : null);
+
+function saveProfileFrom(kind) {
+  const old = loadProfile();
+  let p;
+  if (kind === 'matrix') {
+    const d = formatDate(current.date);
+    p = { name: current.name || (old && old.name) || '', g: current.g, d };
+    if (old && old.d === d) { p.tm = old.tm; p.p = old.p; }
+  } else {
+    const n = natalCurrent;
+    p = { name: n.name || (old && old.name) || '', g: (old && old.g) || readGender(), d: formatDate(n.date), tm: n.time ? `${String(n.time.hour).padStart(2, '0')}:${String(n.time.minute).padStart(2, '0')}` : '', p: n.place };
+  }
+  if (!storeProfile(p)) { toast('Не получилось сохранить: браузер запрещает хранилище'); return; }
+  refreshProfileUI();
+  prefillFromProfile();
+  toast(p.p ? 'Готово! Теперь формы заполняются сами' : 'Готово! Для натальной карты построй её и тоже нажми «Это я»');
+}
+$('meSaveBtn').addEventListener('click', () => { if (current && current.type === 'single') saveProfileFrom('matrix'); });
+$('nMeSaveBtn').addEventListener('click', () => { if (natalCurrent) saveProfileFrom('natal'); });
+
+function prefillFromProfile() {
+  const p = loadProfile();
+  if (!p) return;
+  const date = parseDate(p.d);
+  if (!date) return;
+  if (!$('date').value) { $('name').value = p.name || ''; $('date').value = p.d; setGender(p.g || 'n'); }
+  if (!$('date1').value) { $('name1').value = p.name || ''; $('date1').value = p.d; }
+  const nd = profileNatalData(p);
+  if (nd && !document.getElementById('nDate').value) prefillNatal(nd);
+  if (nd && !document.getElementById('saDate').value) prefillSynA(nd);
+}
+
+function refreshProfileUI() {
+  const p = loadProfile();
+  $('profileDot').hidden = !p;
+  $('meBar').hidden = !p;
+  if (p) {
+    $('meHello').textContent = p.name ? `${p.name}, привет ✦` : 'С возвращением ✦';
+    $('meNatal').hidden = !p.p;
+  }
+  const body = $('profileBody');
+  if (!p) {
+    body.innerHTML = `<p class="card-text">Сохрани свои данные — сайт будет сам подставлять их во все формы, а на главной появятся кнопки «Моя матрица» и «Моя карта».</p>
+      <p class="muted small">Рассчитай свою матрицу или натальную карту и нажми под результатом «✦ Это я — запомнить». Данные хранятся только в этом браузере.</p>`;
+    return;
+  }
+  const row = (k, v) => `<div class="pf-row"><span>${k}</span><b>${v ? esc(v) : '<span class="muted">не указано</span>'}</b></div>`;
+  body.innerHTML = `<div class="pf-card">
+      <p class="pf-name">${esc(p.name || 'Без имени')}</p>
+      ${row('Дата рождения', p.d)}${row('Время', p.tm)}${row('Место', p.p ? p.p.name : '')}
+    </div>
+    <div class="pf-actions">
+      <button class="btn btn-solid" type="button" id="pfMatrix">МОЯ МАТРИЦА</button>
+      <button class="btn btn-solid" type="button" id="pfNatal" ${p.p ? '' : 'disabled'}>МОЯ КАРТА</button>
+    </div>
+    ${p.p ? '' : '<p class="muted small center">Чтобы открывать натальную карту, построй её и нажми «Это я» под результатом.</p>'}
+    <button class="link-btn pf-del" type="button" id="pfDelete">Удалить профиль</button>`;
+  $('pfMatrix').addEventListener('click', () => { $('profileDialog').close(); openMyMatrix(); });
+  if (p.p) $('pfNatal').addEventListener('click', () => { $('profileDialog').close(); openMyNatal(); });
+  $('pfDelete').addEventListener('click', (e) => {
+    if (e.target.dataset.armed) { storeProfile(null); refreshProfileUI(); toast('Профиль удалён'); return; }
+    e.target.dataset.armed = '1';
+    e.target.textContent = 'Точно удалить? Нажми ещё раз';
+  });
+}
+
+function openMyMatrix() {
+  const p = loadProfile();
+  const date = p && parseDate(p.d);
+  if (date) openSingle(p.name || '', date, p.g || 'n');
+}
+function openMyNatal() {
+  const nd = profileNatalData(loadProfile());
+  if (!nd) return;
+  setMode('natal'); setSub('one'); openNatalData(nd);
+}
+$('meMatrix').addEventListener('click', openMyMatrix);
+$('meNatal').addEventListener('click', openMyNatal);
+$('profileBtn').addEventListener('click', () => { refreshProfileUI(); $('profileDialog').showModal(); });
+$('closeProfile').addEventListener('click', () => $('profileDialog').close());
+$('profileDialog').addEventListener('click', (e) => { if (e.target === $('profileDialog')) $('profileDialog').close(); });
+
+// ── Установка на телефон (PWA) ─────────────────────
+let installEvent = null;
+const standalone = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+function refreshInstallUI() {
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  $('installDone').hidden = !standalone();
+  $('installBtn').hidden = standalone() || !installEvent;
+  $('installIos').hidden = standalone() || !ios;
+  $('installText').hidden = standalone();
+}
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installEvent = e; refreshInstallUI(); });
+window.addEventListener('appinstalled', () => { installEvent = null; refreshInstallUI(); toast('«Аркана» установлена на устройство'); });
+$('installBtn').addEventListener('click', async () => {
+  if (!installEvent) return;
+  installEvent.prompt();
+  try { await installEvent.userChoice; } catch { /* отменили */ }
+  installEvent = null;
+  refreshInstallUI();
+});
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+}
+refreshInstallUI();
+
 updateBadge();
+refreshProfileUI();
+prefillFromProfile();
 fromHash();

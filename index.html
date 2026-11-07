@@ -10,11 +10,17 @@
 <meta property="og:description" content="Всё, что звёзды и числа знают о тебе. Бесплатно и без регистрации.">
 <meta property="og:type" content="website">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Аркана">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oranienbaum&family=Raleway:wght@400;500;600&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Symbols&text=%E2%98%89%E2%98%BD%E2%98%BF%E2%99%80%E2%99%82%E2%99%83%E2%99%84%E2%99%85%E2%99%86%E2%99%87%E2%98%8A%E2%99%88%E2%99%89%E2%99%8A%E2%99%8B%E2%99%8C%E2%99%8D%E2%99%8E%E2%99%8F%E2%99%90%E2%99%91%E2%99%92%E2%99%93%E2%98%8C%E2%98%8D%E2%96%B3%E2%96%A1%E2%9A%B9&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=11">
+<link rel="stylesheet" href="css/style.css?v=12">
 </head>
 <body>
 <div class="frame">
@@ -26,7 +32,10 @@
     <span class="badge" id="savedCount" hidden>0</span>
   </button>
   <span class="topbar-mark">✦ ✦ ✦</span>
-  <span class="icon-btn-placeholder" aria-hidden="true"></span>
+  <button class="icon-btn" id="profileBtn" aria-label="Мой профиль и установка">
+    <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="12" cy="8.5" r="3.6"></circle><path d="M4.5 20c1.4-3.6 4.3-5.4 7.5-5.4s6.1 1.8 7.5 5.4"></path></svg>
+    <span class="dot" id="profileDot" hidden></span>
+  </button>
 </header>
 
 <div class="side">
@@ -41,6 +50,14 @@
 </section>
 
 <section class="panel">
+  <div class="me-bar" id="meBar" hidden>
+    <span class="me-hello" id="meHello"></span>
+    <div class="me-actions">
+      <button type="button" class="me-btn" id="meMatrix">Моя матрица</button>
+      <button type="button" class="me-btn" id="meNatal">Моя карта</button>
+    </div>
+  </div>
+
   <div class="tabs" role="tablist">
     <button class="tab active" role="tab" aria-selected="true" data-tab="matrix">МАТРИЦА СУДЬБЫ</button>
     <button class="tab" role="tab" aria-selected="false" data-tab="natal">НАТАЛЬНАЯ КАРТА</button>
@@ -194,6 +211,7 @@
     </button>
     <button class="btn btn-ghost" id="saveBtn" type="button">СОХРАНИТЬ</button>
     <button class="btn btn-solid" id="shareBtn" type="button">ССЫЛКА</button>
+    <button class="btn btn-ghost btn-me" id="meSaveBtn" type="button">✦ ЭТО Я — ЗАПОМНИТЬ</button>
   </div>
   <div class="jump" id="toPairBox">
     <button class="btn btn-ghost jump-btn" id="toPairBtn" type="button">＋ ДОБАВИТЬ ПАРТНЁРА</button>
@@ -276,8 +294,13 @@
   </section>
 
   <div class="actions">
+    <button class="btn btn-accent btn-story" id="nStoryBtn" type="button">
+      <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="6" y="2.5" width="12" height="19" rx="2"></rect><circle cx="12" cy="11" r="3"></circle><path d="M9.5 17.5h5"></path></svg>
+      КАРТИНКА ДЛЯ СТОРИС
+    </button>
     <button class="btn btn-ghost" id="nSaveBtn" type="button">СОХРАНИТЬ</button>
     <button class="btn btn-solid" id="nShareBtn" type="button">ССЫЛКА</button>
+    <button class="btn btn-ghost btn-me" id="nMeSaveBtn" type="button">✦ ЭТО Я — ЗАПОМНИТЬ</button>
   </div>
   <div class="jump">
     <button class="btn btn-ghost jump-btn" id="nToSynBtn" type="button">＋ ДОБАВИТЬ ПАРТНЁРА</button>
@@ -342,6 +365,23 @@
 </div>
 </div>
 
+<dialog id="profileDialog" class="sheet">
+  <div class="sheet-head">
+    <h2 class="section-title">МОЙ ПРОФИЛЬ</h2>
+    <button class="icon-btn" id="closeProfile" aria-label="Закрыть">
+      <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+    </button>
+  </div>
+  <div id="profileBody"></div>
+  <div class="install" id="installBox">
+    <h3 class="sub-title">Приложение на телефоне</h3>
+    <p class="muted small" id="installText">Установи «Аркану» на главный экран — откроется как приложение и будет работать без интернета.</p>
+    <button class="btn btn-accent" id="installBtn" type="button" hidden>УСТАНОВИТЬ</button>
+    <p class="muted small" id="installIos" hidden>На iPhone: нажми «Поделиться» <span aria-hidden="true">⎙</span> внизу Safari, затем «На экран „Домой“».</p>
+    <p class="muted small" id="installDone" hidden>Приложение уже установлено ✦</p>
+  </div>
+</dialog>
+
 <dialog id="savedDialog" class="sheet">
   <div class="sheet-head">
     <h2 class="section-title">МОИ МАТРИЦЫ</h2>
@@ -373,6 +413,6 @@
 
 <div class="toast" id="toast" role="status" hidden></div>
 
-<script type="module" src="js/app.js?v=11"></script>
+<script type="module" src="js/app.js?v=12"></script>
 </body>
 </html>
