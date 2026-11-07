@@ -1,11 +1,11 @@
 // Синастрия: форма на двоих, двойной круг, шкалы, ключевые связи, наложение домов.
-import { loadAstronomy, calcNatal, calcSynastry, formatDeg, formatOffset, isValidZone } from './natal.js?v=8';
-import { PLANETS, SIGNS_INFO, HOUSES_INFO, ASPECTS_INFO } from './natal-texts.js?v=8';
-import { SYN_TOPICS, SYN_NATURE, SYN_CATS_INFO, HOUSE_OVERLAY, totalText } from './syn-texts.js?v=8';
-import { personFieldsHTML, attachPerson, parseTime, fmtTime } from './place-field.js?v=8';
-import { parseDate, formatDate } from './matrix.js?v=8';
-import { natalCurrent } from './natal-ui.js?v=8';
-import { drawBiWheel } from './biwheel.js?v=8';
+import { loadAstronomy, calcNatal, calcSynastry, formatDeg, formatOffset, isValidZone } from './natal.js?v=9';
+import { PLANETS, SIGNS_INFO, HOUSES_INFO, ASPECTS_INFO } from './natal-texts.js?v=9';
+import { SYN_TOPICS, SYN_NATURE, SYN_CATS_INFO, HOUSE_OVERLAY, totalText } from './syn-texts.js?v=9';
+import { personFieldsHTML, attachPerson, parseTime, fmtTime } from './place-field.js?v=9';
+import { parseDate, formatDate } from './matrix.js?v=9';
+import { natalCurrent } from './natal-ui.js?v=9';
+import { drawBiWheel } from './biwheel.js?v=9';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -82,7 +82,16 @@ function topicFor(a, b) {
 
 function renderScores() {
   const { syn } = synCurrent;
-  $('sTotal').innerHTML = `<span class="score-num">${syn.total}%</span><span class="score-text">${totalText(syn.total)}</span>`;
+  $('sTotal').innerHTML = `<span class="score-num">${syn.total}%</span>`
+    + `<span class="score-pct">гармоничнее, чем ${syn.percentile}% пар</span>`
+    + `<span class="score-text">${totalText(syn.percentile)}</span>`
+    + (() => {
+      const vals = Object.values(syn.scores).map((x) => x.value);
+      if (syn.total < Math.min(...vals)) return '<span class="score-note">Итог ниже каждой шкалы: напряжение есть во всех сферах сразу, а такое встречается реже, чем в одной.</span>';
+      if (syn.total > Math.max(...vals)) return '<span class="score-note">Итог выше каждой шкалы: гармония есть во всех сферах сразу, а такое встречается реже, чем в одной.</span>';
+      return '';
+    })()
+    + '<span class="score-note">50% — средняя пара. Шкала откалибрована на 20 000 случайных сочетаний карт.</span>';
   $('sScores').innerHTML = '<div class="bal-group">' + Object.entries(syn.scores).map(([k, v]) => `
     <div class="bal-row score">
       <span class="bal-name">${SYN_CATS_INFO[k].name}</span>

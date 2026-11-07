@@ -630,6 +630,8 @@ tr.reveal, .year-row.reveal { transform: none; }
 .score-total { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
 .score-num { font-family: var(--display); font-size: 64px; line-height: 1; color: var(--brass); }
 .score-text { max-width: 460px; color: var(--ivory-2); }
+.score-pct { font-size: 13px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--terra-light); }
+.score-note { max-width: 460px; font-size: 12px; color: var(--muted); }
 .bal-row.score .bal-bar span { background: linear-gradient(90deg, var(--terra), var(--brass)); }
 .syn-card.soft { border-color: rgba(201, 168, 106, 0.7); }
 .syn-card.tense { border-color: rgba(217, 130, 95, 0.6); }

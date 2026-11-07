@@ -265,29 +265,12 @@ export function calcSynastry(c1, c2) {
   }
   aspects.sort((x, y) => x.orb - y.orb);
 
-  // Шкалы 0–100: мягкие аспекты поднимают, напряжённые опускают (в «притяжении» дают искру)
-  const scores = {};
-  for (const [cat, test] of Object.entries(SYN_CATS)) {
-    let v = 58, n = 0;
-    for (const a of aspects) {
-      if (!test(a.a, a.b)) continue;
-      const w = 1 - a.orb / (a.max + 1);
-      n++;
-      const saturn = a.a === 'saturn' || a.b === 'saturn';
-      if (a.type === 'trine' || a.type === 'sextile') v += (a.type === 'trine' ? 15 : 11) * w;
-      else if (a.type === 'conjunction') v += (saturn ? 6 : 13) * w;
-      else if (cat === 'attraction') v += 7 * w;
-      else v -= (saturn ? 12 : 9) * w;
-    }
-    scores[cat] = { value: Math.round(Math.max(8, Math.min(97, v))), count: n };
-  }
-  const vals = Object.values(scores).map((x) => x.value);
-  const total = Math.round(vals.reduce((s, x) => s + x, 0) / vals.length);
+  const { scores, total, percentile } = scoreSynastry(aspects);
 
   // Наложение домов: планеты одного в домах другого
   const overlay = (from, to) => (to.houses ? from.planets.filter((p) => p.key !== 'node').map((p) => ({ key: p.key, house: houseOf(p.lon, to.houses.cusps) })) : null);
 
-  return { aspects, scores, total, overlayAinB: overlay(c1, c2), overlayBinA: overlay(c2, c1) };
+  return { aspects, scores, total, percentile, overlayAinB: overlay(c1, c2), overlayBinA: overlay(c2, c1) };
 }
 
 // ── Транзиты ───────────────────────────────────────
@@ -372,4 +355,68 @@ export function upcomingTransits(natal, fromMs, days = 365) {
     prev = { ms, lons };
   }
   return events.sort((a, b) => a.ms - b.ms);
+}
+
+/**
+ * «Сырые» баллы по сферам: симметричные веса, мягкие аспекты прибавляют, напряжённые отнимают.
+ * Вес аспекта тем больше, чем он точнее: w = 1 − орб / (допуск + 1).
+ */
+export function rawSynScores(aspects) {
+  const raw = {}, count = {};
+  for (const [cat, test] of Object.entries(SYN_CATS)) {
+    let v = 0, n = 0;
+    for (const a of aspects) {
+      if (!test(a.a, a.b)) continue;
+      const w = 1 - a.orb / (a.max + 1);
+      const heavy = a.a === 'saturn' || a.b === 'saturn' || a.a === 'pluto' || a.b === 'pluto';
+      n++;
+      if (a.type === 'trine') v += 1.0 * w;
+      else if (a.type === 'sextile') v += 0.7 * w;
+      else if (a.type === 'conjunction') v += (heavy ? 0.2 : 0.8) * w;
+      else if (cat === 'attraction') v += 0.3 * w; // напряжение в притяжении — это ещё и искра
+      else v -= (a.type === 'square' ? 1.0 : 0.8) * (heavy ? 1.3 : 1) * w;
+    }
+    raw[cat] = v; count[cat] = n;
+  }
+  return { raw, count };
+}
+
+// Калибровка по 20 000 случайных пар (1950–2010): среднее и разброс «сырых» баллов.
+// Средняя пара получает 50%, одно стандартное отклонение — ±15%.
+export const SYN_CAL = {
+  emotions: { m: 0.3135, s: 1.399 },
+  attraction: { m: 1.1543, s: 0.6918 },
+  communication: { m: 0.2966, s: 1.3344 },
+  love: { m: 0.2134, s: 0.9435 },
+  longterm: { m: 0.0879, s: 1.9073 },
+  total: { m: 0, s: 2.5913 },
+};
+
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+// Нормальная функция распределения (приближение Абрамовица–Стегуна)
+function normCdf(z) {
+  const t = 1 / (1 + 0.2316419 * Math.abs(z));
+  const d = 0.3989423 * Math.exp(-z * z / 2);
+  const p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
+  return z > 0 ? 1 - p : p;
+}
+
+export function scoreSynastry(aspects) {
+  const { raw, count } = rawSynScores(aspects);
+  const scores = {};
+  let zsum = 0;
+  for (const cat of Object.keys(raw)) {
+    const { m, s } = SYN_CAL[cat];
+    const z = (raw[cat] - m) / s;
+    zsum += z;
+    scores[cat] = { value: Math.round(clamp(50 + 15 * z, 3, 97)), count: count[cat] };
+  }
+  const zt = (zsum - SYN_CAL.total.m) / SYN_CAL.total.s;
+  return {
+    scores,
+    // Итог — по сумме отклонений всех сфер: если напряжение (или гармония) есть везде сразу,
+    // это реже, чем в одной сфере, поэтому итог может выйти за пределы отдельных шкал
+    total: Math.round(clamp(50 + 15 * zt, 3, 97)),
+    percentile: Math.round(clamp(normCdf(zt) * 100, 1, 99)),
+  };
 }

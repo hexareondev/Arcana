@@ -1,8 +1,8 @@
-import { calcMatrix, calcHealth, calcPair, calcYears, ageAt, activePoint, parseDate, formatDate } from './matrix.js?v=8';
-import { ARCANA, POSITIONS, PAIR, PAIR_POSITIONS, CHAKRAS, YEARS } from './arcana.js?v=8';
-import { drawStory } from './story.js?v=8';
-import { initNatal, openNatal, natalFromHash, natalCurrent } from './natal-ui.js?v=8';
-import { initSyn, applyNatalSub, natalSub, setSub, synFromHash, openSyn, openSynRecord } from './syn-ui.js?v=8';
+import { calcMatrix, calcHealth, calcPair, calcYears, ageAt, activePoint, parseDate, formatDate } from './matrix.js?v=9';
+import { ARCANA, POSITIONS, PAIR, PAIR_POSITIONS, CHAKRAS, YEARS } from './arcana.js?v=9';
+import { drawStory } from './story.js?v=9';
+import { initNatal, openNatal, natalFromHash, natalCurrent } from './natal-ui.js?v=9';
+import { initSyn, applyNatalSub, natalSub, setSub, synFromHash, openSyn, openSynRecord } from './syn-ui.js?v=9';
 
 const $ = (id) => document.getElementById(id);
 
