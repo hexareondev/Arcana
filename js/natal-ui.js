@@ -1,12 +1,12 @@
 // Интерфейс натальной карты: форма, поиск города, круг, трактовки.
-import { loadAstronomy, calcNatal, formatOffset, formatDeg, isValidZone, SIGNS, angDist } from './natal.js?v=10';
-import { PLANETS, SIGNS_INFO, HOUSES_INFO, ASPECTS_INFO, ELEMENTS_INFO, MODALITIES_INFO, SUN_IN, MOON_IN, ASC_IN } from './natal-texts.js?v=10';
-import { parseDate, formatDate } from './matrix.js?v=10';
-import { IN_SIGN } from './natal-signs.js?v=10';
-import { IN_HOUSE } from './natal-houses.js?v=10';
-import { personFieldsHTML, attachPerson, parseTime, fmtTime } from './place-field.js?v=10';
-import { renderTransits, initTransits } from './transit-ui.js?v=10';
-import { renderPartner } from './partner-ui.js?v=10';
+import { loadAstronomy, calcNatal, formatOffset, formatDeg, isValidZone, SIGNS, angDist } from './natal.js?v=11';
+import { PLANETS, SIGNS_INFO, HOUSES_INFO, ASPECTS_INFO, ELEMENTS_INFO, MODALITIES_INFO, SUN_IN, MOON_IN, ASC_IN } from './natal-texts.js?v=11';
+import { parseDate, formatDate } from './matrix.js?v=11';
+import { IN_SIGN } from './natal-signs.js?v=11';
+import { IN_HOUSE } from './natal-houses.js?v=11';
+import { personFieldsHTML, attachPerson, parseTime, fmtTime } from './place-field.js?v=11';
+import { renderTransits, initTransits } from './transit-ui.js?v=11';
+import { renderPartner } from './partner-ui.js?v=11';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -315,3 +315,9 @@ export function initNatal(helpers) {
 
 export const natalSignName = (lon) => SIGNS_INFO[Math.floor(lon / 30)].name;
 export { SIGNS, angDist, gl, esc, ROMAN };
+
+/** Показать карту по готовым данным { name, date, time, place } (из синастрии). */
+export async function openNatalData(data) {
+  person.fill(data);
+  try { await showNatal(data); } catch (err) { ctx.toast('Не удалось построить карту: ' + err.message); }
+}

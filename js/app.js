@@ -1,8 +1,8 @@
-import { calcMatrix, calcHealth, calcPair, calcYears, ageAt, activePoint, parseDate, formatDate } from './matrix.js?v=10';
-import { ARCANA, POSITIONS, PAIR, PAIR_POSITIONS, CHAKRAS, YEARS } from './arcana.js?v=10';
-import { drawStory } from './story.js?v=10';
-import { initNatal, openNatal, natalFromHash, natalCurrent } from './natal-ui.js?v=10';
-import { initSyn, applyNatalSub, natalSub, setSub, synFromHash, openSyn, openSynRecord } from './syn-ui.js?v=10';
+import { calcMatrix, calcHealth, calcPair, calcYears, ageAt, activePoint, parseDate, formatDate } from './matrix.js?v=11';
+import { ARCANA, POSITIONS, PAIR, PAIR_POSITIONS, CHAKRAS, YEARS } from './arcana.js?v=11';
+import { drawStory } from './story.js?v=11';
+import { initNatal, openNatal, openNatalData, natalFromHash, natalCurrent } from './natal-ui.js?v=11';
+import { initSyn, applyNatalSub, natalSub, setSub, synFromHash, openSyn, openSynRecord, prefillSynA, synCurrent } from './syn-ui.js?v=11';
 
 const $ = (id) => document.getElementById(id);
 
@@ -66,13 +66,23 @@ function readDate(input) {
 }
 
 // ── Вкладки ────────────────────────────────────────
+// Вкладки: «Матрица судьбы» (режимы single / pair) и «Натальная карта» (одна карта / синастрия).
 let mode = 'single';
+let lastMatrix = 'single';
 function setMode(next) {
   mode = next;
-  document.querySelectorAll('.tab[data-mode]').forEach((t) => {
-    const on = t.dataset.mode === next;
+  if (next !== 'natal') lastMatrix = next;
+  const tab = next === 'natal' ? 'natal' : 'matrix';
+  document.querySelectorAll('.tab[data-tab]').forEach((t) => {
+    const on = t.dataset.tab === tab;
     t.classList.toggle('active', on);
     t.setAttribute('aria-selected', String(on));
+  });
+  $('matrixSub').hidden = next === 'natal';
+  document.querySelectorAll('#matrixSub .subtab').forEach((b) => {
+    const on = b.dataset.msub === next;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-selected', String(on));
   });
   $('form').hidden = next !== 'single';
   $('pairForm').hidden = next !== 'pair';
@@ -95,7 +105,8 @@ function refreshPlaceholder() {
   const ready = $('toResult');
   if (ready) ready.firstChild.textContent = syn ? 'Синастрия — ниже' : mode === 'natal' ? 'Твоя карта — ниже' : mode === 'pair' ? 'Матрица пары — ниже' : 'Твоя матрица — ниже';
 }
-document.querySelectorAll('.tab[data-mode]').forEach((t) => t.addEventListener('click', () => setMode(t.dataset.mode)));
+document.querySelectorAll('.tab[data-tab]').forEach((t) => t.addEventListener('click', () => setMode(t.dataset.tab === 'natal' ? 'natal' : lastMatrix)));
+document.querySelectorAll('#matrixSub .subtab').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.msub)));
 
 // ── Хранилище ──────────────────────────────────────
 function loadSaved() {
@@ -457,6 +468,8 @@ function show(name, date, { scroll = true, sex } = {}) {
   drawChart(m);
   renderCards(m);
   renderYears(m, date);
+  $('toPairBox').hidden = false;
+  $('splitBox').hidden = true;
   $('years').hidden = false;
   renderHealth(m);
   $('health').hidden = false;
@@ -478,6 +491,10 @@ function showPair(n1, d1, n2, d2, { scroll = true } = {}) {
   $('resultDate').textContent = (both ? both + ' · ' : '') + `${formatDate(d1)} + ${formatDate(d2)}`;
   drawChart(current.m);
   renderPairCards();
+  $('toPairBox').hidden = true;
+  $('splitBox').hidden = false;
+  $('split1').textContent = `МАТРИЦА: ${(n1 || 'первый').toUpperCase()}`;
+  $('split2').textContent = `МАТРИЦА: ${(n2 || 'второй').toUpperCase()}`;
   $('health').hidden = true;
   $('years').hidden = true;
   $('result').hidden = false;
@@ -722,6 +739,29 @@ function fromHash() {
   const date = parseDate(params.get('d'));
   if (date) openSingle(clip(params.get('n')), date, params.get('g'));
 }
+
+// ── Быстрые переходы «один ↔ пара» ─────────────────
+function focusLater(el, scrollTarget) {
+  scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  setTimeout(() => el.focus({ preventScroll: true }), 450);
+}
+$('toPairBtn').addEventListener('click', () => {
+  if (!current || current.type !== 'single') return;
+  setMode('pair');
+  $('name1').value = current.name || '';
+  $('date1').value = formatDate(current.date);
+  focusLater($('name2').value ? $('date2') : $('name2'), $('pairForm'));
+});
+$('split1').addEventListener('click', () => { if (current && current.type === 'pair') openSingle(current.n1, current.d1, readGender()); });
+$('split2').addEventListener('click', () => { if (current && current.type === 'pair') openSingle(current.n2, current.d2, readGender()); });
+$('nToSynBtn').addEventListener('click', () => {
+  if (!natalCurrent) return;
+  setSub('syn');
+  prefillSynA({ name: natalCurrent.name, date: natalCurrent.date, time: natalCurrent.time, place: natalCurrent.place });
+  focusLater(document.getElementById('sbName'), $('synForm'));
+});
+$('sSplit1').addEventListener('click', () => { if (synCurrent) { setSub('one'); openNatalData(synCurrent.a); } });
+$('sSplit2').addEventListener('click', () => { if (synCurrent) { setSub('one'); openNatalData(synCurrent.b); } });
 
 initNatal({ g, toast, setHash, playWhenVisible, revealAll, saveRecord, shareLink });
 initSyn({ toast, setHash, playWhenVisible, revealAll, saveRecord, shareLink, refreshPlaceholder });

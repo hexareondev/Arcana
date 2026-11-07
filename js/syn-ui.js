@@ -1,12 +1,12 @@
 // Синастрия: форма на двоих, двойной круг, шкалы, ключевые связи, наложение домов.
-import { loadAstronomy, calcNatal, calcSynastry, formatDeg, formatOffset, isValidZone } from './natal.js?v=10';
-import { PLANETS, SIGNS_INFO, HOUSES_INFO, ASPECTS_INFO } from './natal-texts.js?v=10';
-import { SYN_TOPICS, SYN_NATURE, SYN_CATS_INFO, HOUSE_OVERLAY, totalText } from './syn-texts.js?v=10';
-import { personFieldsHTML, attachPerson, parseTime, fmtTime } from './place-field.js?v=10';
-import { parseDate, formatDate } from './matrix.js?v=10';
-import { natalCurrent } from './natal-ui.js?v=10';
-import { drawBiWheel } from './biwheel.js?v=10';
-import { renderPortraitMatch } from './partner-ui.js?v=10';
+import { loadAstronomy, calcNatal, calcSynastry, formatDeg, formatOffset, isValidZone } from './natal.js?v=11';
+import { PLANETS, SIGNS_INFO, HOUSES_INFO, ASPECTS_INFO } from './natal-texts.js?v=11';
+import { SYN_TOPICS, SYN_NATURE, SYN_CATS_INFO, HOUSE_OVERLAY, totalText } from './syn-texts.js?v=11';
+import { personFieldsHTML, attachPerson, parseTime, fmtTime } from './place-field.js?v=11';
+import { parseDate, formatDate } from './matrix.js?v=11';
+import { natalCurrent } from './natal-ui.js?v=11';
+import { drawBiWheel } from './biwheel.js?v=11';
+import { renderPortraitMatch } from './partner-ui.js?v=11';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -169,6 +169,8 @@ export async function showSyn(a, b, { scroll = true } = {}) {
   renderKey();
   renderOverlay();
   renderPortraitMatch(synCurrent);
+  $('sSplit1').textContent = `КАРТА: ${na.toUpperCase()}`;
+  $('sSplit2').textContent = `КАРТА: ${nb.toUpperCase()}`;
   renderAll();
   $('synResult').hidden = false;
   ctx.revealAll($('synResult'));
@@ -239,3 +241,6 @@ export function initSyn(helpers) {
 }
 
 export { formatOffset };
+
+/** Заполнить первого человека синастрии данными одиночной карты. */
+export function prefillSynA(data) { pa.fill(data); }

@@ -102,7 +102,7 @@ button { font: inherit; color: inherit; }
 .panel { padding: 28px 22px 0; display: flex; flex-direction: column; gap: 18px; }
 
 .tabs {
-  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
   border: 1px solid var(--brass);
 }
 .tab {
@@ -733,6 +733,7 @@ tr.reveal { transform: none; }
   .two-col .side, .two-col .panel { display: contents; }
   .two-col .hero { grid-area: hero; padding: 12px 32px 0; }
   .two-col .tabs { grid-area: tabs; margin: 28px 32px 0; width: calc(100% - 64px); max-width: 460px; justify-self: center; align-self: start; }
+  .two-col #matrixSub { grid-area: sub; margin: 12px 32px 0; width: calc(100% - 64px); max-width: 460px; justify-self: center; }
   .two-col #natalSub { grid-area: sub; margin: 12px 32px 0; width: calc(100% - 64px); max-width: 460px; justify-self: center; }
   .two-col .main { grid-area: main; padding: 0 44px 0 24px; }
   .two-col .placeholder { min-height: 420px; gap: 16px; padding-top: 24px; }
@@ -796,3 +797,13 @@ tr.reveal { transform: none; }
 .pm-verdict.strong { color: var(--brass); }
 .pm-verdict.none { color: var(--muted); }
 .ov-col .small { text-align: center; margin-bottom: 6px; }
+
+/* ── Быстрые переходы ──────────────────────────── */
+.jump { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 4px; }
+.jump-btn { width: 100%; border-style: dashed; color: var(--terra-light); border-color: var(--terra-light); }
+.jump-hint { margin: 0; font-size: 12px; color: var(--muted); text-align: center; }
+.jump-row { width: 100%; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.jump-row .btn { font-size: 14px; letter-spacing: 0.1em; padding: 0 8px; overflow-wrap: anywhere; }
+@media (min-width: 1000px) {
+  .result > .jump { max-width: 560px; margin-left: auto; margin-right: auto; }
+}

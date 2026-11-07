@@ -1,9 +1,9 @@
 // Портрет партнёра в натальной карте и совпадение с ним в синастрии.
-import { partnerPortrait, loveWindows, portraitMatch, formatDeg } from './natal.js?v=10';
-import { PLANETS, SIGNS_INFO, HOUSES_INFO, ASPECTS_INFO } from './natal-texts.js?v=10';
-import { IN_SIGN } from './natal-signs.js?v=10';
-import { IN_HOUSE } from './natal-houses.js?v=10';
-import { DSC_IN, MEET_HOUSE, MARS_ATTRACT, MOON_NEED, LOVE_WINDOW, LOVE_TARGET } from './partner-texts.js?v=10';
+import { partnerPortrait, loveWindows, portraitMatch, formatDeg } from './natal.js?v=11';
+import { PLANETS, SIGNS_INFO, HOUSES_INFO, ASPECTS_INFO } from './natal-texts.js?v=11';
+import { IN_SIGN } from './natal-signs.js?v=11';
+import { IN_HOUSE } from './natal-houses.js?v=11';
+import { DSC_IN, MEET_HOUSE, MARS_ATTRACT, MOON_NEED, LOVE_WINDOW, LOVE_TARGET } from './partner-texts.js?v=11';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
