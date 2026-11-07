@@ -1,12 +1,12 @@
 // Интерфейс натальной карты: форма, поиск города, круг, трактовки.
-import { loadAstronomy, calcNatal, formatOffset, formatDeg, isValidZone, SIGNS, angDist } from './natal.js?v=12';
-import { PLANETS, SIGNS_INFO, HOUSES_INFO, ASPECTS_INFO, ELEMENTS_INFO, MODALITIES_INFO, SUN_IN, MOON_IN, ASC_IN } from './natal-texts.js?v=12';
-import { parseDate, formatDate } from './matrix.js?v=12';
-import { IN_SIGN } from './natal-signs.js?v=12';
-import { IN_HOUSE } from './natal-houses.js?v=12';
-import { personFieldsHTML, attachPerson, parseTime, fmtTime } from './place-field.js?v=12';
-import { renderTransits, initTransits } from './transit-ui.js?v=12';
-import { renderPartner } from './partner-ui.js?v=12';
+import { loadAstronomy, calcNatal, formatOffset, formatDeg, isValidZone, SIGNS, angDist } from './natal.js?v=13';
+import { PLANETS, SIGNS_INFO, HOUSES_INFO, ASPECTS_INFO, ELEMENTS_INFO, MODALITIES_INFO, SUN_IN, MOON_IN, ASC_IN } from './natal-texts.js?v=13';
+import { parseDate, formatDate } from './matrix.js?v=13';
+import { IN_SIGN } from './natal-signs.js?v=13';
+import { IN_HOUSE } from './natal-houses.js?v=13';
+import { personFieldsHTML, attachPerson, parseTime, fmtTime } from './place-field.js?v=13';
+import { renderTransits, initTransits } from './transit-ui.js?v=13';
+import { renderPartner } from './partner-ui.js?v=13';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));

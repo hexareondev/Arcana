@@ -758,6 +758,14 @@ tr.reveal { transform: none; }
   .two-col #pairForm > .btn, .two-col #synForm > .btn { grid-column: 1 / -1; justify-self: center; width: 100%; max-width: 460px; }
   .two-col #pairForm > .privacy, .two-col #synForm > .privacy { grid-column: 1 / -1; }
   .two-col.has-result .result { margin-top: 36px; }
+
+  /* Одна форма (матрица / натальная карта) — по центру той же нижней полосы */
+  .two-col #form, .two-col #natalForm {
+    grid-area: forms;
+    margin-top: 32px;
+    padding: 32px max(44px, calc((100% - 560px) / 2)) 8px;
+    border-top: 1px solid var(--brass-faint);
+  }
 }
 
 /* ── Транзиты ──────────────────────────────────── */

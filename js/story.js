@@ -1,5 +1,5 @@
 // Картинка для сторис 1080×1920, рисуется на <canvas> прямо в браузере.
-import { PLANETS, SIGNS_INFO, ASPECTS_INFO } from './natal-texts.js?v=12';
+import { PLANETS, SIGNS_INFO, ASPECTS_INFO } from './natal-texts.js?v=13';
 
 const W = 1080, H = 1920;
 const C = {

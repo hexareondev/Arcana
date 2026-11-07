@@ -1,9 +1,9 @@
 // Транзиты: небо на выбранную дату поверх натальной карты.
-import { calcTransits, upcomingTransits, formatDeg, houseOf, SLOW } from './natal.js?v=12';
-import { PLANETS, SIGNS_INFO, ASPECTS_INFO } from './natal-texts.js?v=12';
-import { TR_PLANET, TR_AREA, TR_TARGET_NAME, TR_VERB, MOON_DAY } from './transit-texts.js?v=12';
-import { drawBiWheel } from './biwheel.js?v=12';
-import { parseDate, formatDate } from './matrix.js?v=12';
+import { calcTransits, upcomingTransits, formatDeg, houseOf, SLOW } from './natal.js?v=13';
+import { PLANETS, SIGNS_INFO, ASPECTS_INFO } from './natal-texts.js?v=13';
+import { TR_PLANET, TR_AREA, TR_TARGET_NAME, TR_VERB, MOON_DAY } from './transit-texts.js?v=13';
+import { drawBiWheel } from './biwheel.js?v=13';
+import { parseDate, formatDate } from './matrix.js?v=13';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));

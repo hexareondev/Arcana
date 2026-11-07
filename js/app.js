@@ -1,8 +1,8 @@
-import { calcMatrix, calcHealth, calcPair, calcYears, ageAt, activePoint, parseDate, formatDate } from './matrix.js?v=12';
-import { ARCANA, POSITIONS, PAIR, PAIR_POSITIONS, CHAKRAS, YEARS } from './arcana.js?v=12';
-import { drawStory, drawNatalStory } from './story.js?v=12';
-import { initNatal, openNatal, openNatalData, prefillNatal, natalFromHash, natalCurrent } from './natal-ui.js?v=12';
-import { initSyn, applyNatalSub, natalSub, setSub, synFromHash, openSyn, openSynRecord, prefillSynA, synCurrent } from './syn-ui.js?v=12';
+import { calcMatrix, calcHealth, calcPair, calcYears, ageAt, activePoint, parseDate, formatDate } from './matrix.js?v=13';
+import { ARCANA, POSITIONS, PAIR, PAIR_POSITIONS, CHAKRAS, YEARS } from './arcana.js?v=13';
+import { drawStory, drawNatalStory } from './story.js?v=13';
+import { initNatal, openNatal, openNatalData, prefillNatal, natalFromHash, natalCurrent } from './natal-ui.js?v=13';
+import { initSyn, applyNatalSub, natalSub, setSub, synFromHash, openSyn, openSynRecord, prefillSynA, synCurrent } from './syn-ui.js?v=13';
 
 const $ = (id) => document.getElementById(id);
 
@@ -97,7 +97,9 @@ function setMode(next) {
 
 function refreshPlaceholder() {
   const syn = mode === 'natal' && natalSub() === 'syn';
-  document.body.classList.toggle('two-col', mode === 'pair' || syn);
+  // На ПК во всех режимах одна раскладка: заголовок и круг наверху, формы ниже на всю ширину
+  document.body.classList.add('two-col');
+  document.body.classList.toggle('pair-forms', mode === 'pair' || syn);
   const ph = document.querySelector('.ph-empty');
   if (ph) ph.innerHTML = syn ? 'Введи данные двоих —<br>здесь появится синастрия'
     : mode === 'natal' ? 'Введи дату, время и город —<br>здесь появится твоя карта'
@@ -900,6 +902,7 @@ if ('serviceWorker' in navigator) {
 }
 refreshInstallUI();
 
+refreshPlaceholder();
 updateBadge();
 refreshProfileUI();
 prefillFromProfile();

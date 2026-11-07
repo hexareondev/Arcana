@@ -1,12 +1,12 @@
 // Синастрия: форма на двоих, двойной круг, шкалы, ключевые связи, наложение домов.
-import { loadAstronomy, calcNatal, calcSynastry, formatDeg, formatOffset, isValidZone } from './natal.js?v=12';
-import { PLANETS, SIGNS_INFO, HOUSES_INFO, ASPECTS_INFO } from './natal-texts.js?v=12';
-import { SYN_TOPICS, SYN_NATURE, SYN_CATS_INFO, HOUSE_OVERLAY, totalText } from './syn-texts.js?v=12';
-import { personFieldsHTML, attachPerson, parseTime, fmtTime } from './place-field.js?v=12';
-import { parseDate, formatDate } from './matrix.js?v=12';
-import { natalCurrent } from './natal-ui.js?v=12';
-import { drawBiWheel } from './biwheel.js?v=12';
-import { renderPortraitMatch } from './partner-ui.js?v=12';
+import { loadAstronomy, calcNatal, calcSynastry, formatDeg, formatOffset, isValidZone } from './natal.js?v=13';
+import { PLANETS, SIGNS_INFO, HOUSES_INFO, ASPECTS_INFO } from './natal-texts.js?v=13';
+import { SYN_TOPICS, SYN_NATURE, SYN_CATS_INFO, HOUSE_OVERLAY, totalText } from './syn-texts.js?v=13';
+import { personFieldsHTML, attachPerson, parseTime, fmtTime } from './place-field.js?v=13';
+import { parseDate, formatDate } from './matrix.js?v=13';
+import { natalCurrent } from './natal-ui.js?v=13';
+import { drawBiWheel } from './biwheel.js?v=13';
+import { renderPortraitMatch } from './partner-ui.js?v=13';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));

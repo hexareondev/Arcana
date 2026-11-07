@@ -1,5 +1,5 @@
 // Общие поля формы для натальных карт: время рождения и место (поиск Open-Meteo + ручной ввод).
-import { isValidZone } from './natal.js?v=12';
+import { isValidZone } from './natal.js?v=13';
 
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
