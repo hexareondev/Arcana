@@ -1,7 +1,7 @@
 // Двойной круг: внутреннее кольцо — натальная карта (с домами), внешнее — второй набор планет
 // (партнёр в синастрии или небо в транзитах). Линии — аспекты между кольцами.
-import { formatDeg } from './natal.js?v=7';
-import { PLANETS, SIGNS_INFO, ASPECTS_INFO } from './natal-texts.js?v=7';
+import { formatDeg } from './natal.js?v=8';
+import { PLANETS, SIGNS_INFO, ASPECTS_INFO } from './natal-texts.js?v=8';
 
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const gl = (s) => s + '︎';

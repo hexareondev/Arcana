@@ -1,11 +1,11 @@
 // Синастрия: форма на двоих, двойной круг, шкалы, ключевые связи, наложение домов.
-import { loadAstronomy, calcNatal, calcSynastry, formatDeg, formatOffset, isValidZone } from './natal.js?v=7';
-import { PLANETS, SIGNS_INFO, HOUSES_INFO, ASPECTS_INFO } from './natal-texts.js?v=7';
-import { SYN_TOPICS, SYN_NATURE, SYN_CATS_INFO, HOUSE_OVERLAY, totalText } from './syn-texts.js?v=7';
-import { personFieldsHTML, attachPerson, parseTime, fmtTime } from './place-field.js?v=7';
-import { parseDate, formatDate } from './matrix.js?v=7';
-import { natalCurrent } from './natal-ui.js?v=7';
-import { drawBiWheel } from './biwheel.js?v=7';
+import { loadAstronomy, calcNatal, calcSynastry, formatDeg, formatOffset, isValidZone } from './natal.js?v=8';
+import { PLANETS, SIGNS_INFO, HOUSES_INFO, ASPECTS_INFO } from './natal-texts.js?v=8';
+import { SYN_TOPICS, SYN_NATURE, SYN_CATS_INFO, HOUSE_OVERLAY, totalText } from './syn-texts.js?v=8';
+import { personFieldsHTML, attachPerson, parseTime, fmtTime } from './place-field.js?v=8';
+import { parseDate, formatDate } from './matrix.js?v=8';
+import { natalCurrent } from './natal-ui.js?v=8';
+import { drawBiWheel } from './biwheel.js?v=8';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -74,8 +74,10 @@ function houseIdx(lon, cusps) {
 }
 
 // ── Текстовые блоки ────────────────────────────────
+const themeOf = (k) => (k === 'asc' ? 'первое впечатление' : PLANETS[k].theme);
 function topicFor(a, b) {
-  return SYN_TOPICS[`${a}-${b}`] || SYN_TOPICS[`${b}-${a}`] || null;
+  return SYN_TOPICS[`${a}-${b}`] || SYN_TOPICS[`${b}-${a}`]
+    || `«${themeOf(a)}» одного встречается с «${themeOf(b)}» другого`;
 }
 
 function renderScores() {
@@ -99,7 +101,7 @@ function renderKey() {
     .slice(0, 6);
   $('sKey').innerHTML = ranked.length ? ranked.map((a) => {
     const X = ASPECTS_INFO[a.type];
-    const topic = topicFor(a.a, a.b) || `«${a.a === 'asc' ? 'первое впечатление' : PLANETS[a.a].theme}» и «${a.b === 'asc' ? 'первое впечатление' : PLANETS[a.b].theme}» встречаются между вами`;
+    const topic = topicFor(a.a, a.b);
     return `<article class="card syn-card ${X.nature}">
       <span class="card-label">${esc(POINT(a.a).name)} (${esc(na)}) · ${esc(POINT(a.b).name)} (${esc(nb)})</span>
       <h3 class="card-title"><span class="glyph">${glyphOf(a.a)}</span> <span class="glyph asp-sym">${gl(X.glyph)}</span> <span class="glyph">${glyphOf(a.b)}</span> ${X.name}</h3>
@@ -131,7 +133,7 @@ function renderAll() {
     return `<li class="asp ${X.nature}">
       <span class="asp-glyphs"><span class="glyph">${glyphOf(a.a)}</span><span class="glyph asp-sym">${gl(X.glyph)}</span><span class="glyph syn-b">${glyphOf(a.b)}</span></span>
       <span class="asp-body"><b>${esc(POINT(a.a).name)} (${esc(na)}) — ${X.name.toLowerCase()} — ${esc(POINT(a.b).name)} (${esc(nb)})</b> <small>орб ${a.orb.toFixed(1)}°</small>
-      ${topic ? `<span>${esc(topic)}.</span>` : ''}</span></li>`;
+      <span>${esc(topic)}. ${SYN_NATURE[a.type]}</span></span></li>`;
   }).join('');
 }
 
